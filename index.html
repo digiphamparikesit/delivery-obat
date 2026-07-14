@@ -402,7 +402,7 @@
           <li>Tempel URL tsb di bawah ini.</li>
         </ol>
         <span class="field-label">URL Apps Script Web App</span>
-        <input id="webAppUrl" class="text-input" type="text" placeholder="https://script.google.com/macros/s/.../exec">
+        <input id="webAppUrl" class="text-input" type="text" placeholder="https://script.google.com/macros/s/.../exec" value="https://script.google.com/macros/s/AKfycby7PgZ2MKAUBWPBJhcxdBYLhe5OATWEEfO3_oSqqPNAofU0gmNgIpFolI5bGCsw4zEv/exec">
         <p style="color:#9a9584;">Setelah URL ini diisi, tombol "✅ Simpan" pada mode tandai lokasi <b>dan</b> tombol "💾 Simpan" pada edit alamat/telepon akan otomatis mengirim perubahan ke Google Sheet, selain tetap bisa disalin manual.</p>
 
         <hr class="div">
@@ -716,6 +716,8 @@ function renderPetugasList(){
       if(webAppUrl && noreg){
         fetch(webAppUrl, {
           method:'POST',
+          mode:'no-cors',
+          headers:{'Content-Type':'text/plain;charset=utf-8'},
           body: JSON.stringify({sheet: currentStaff, noreg, alamat: newAlamat, telp: newTelp})
         }).catch(() => {});
       }
@@ -829,8 +831,10 @@ document.getElementById('ccSave').addEventListener('click', () => {
   if(webAppUrl && noreg){
     fetch(webAppUrl, {
       method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({sheet: pinTarget.staff, noreg, lat, lng})
-    }).catch(() => {/* silently ignore network/CORS errors, copy fallback still available */});
+    }).catch(() => {/* silently ignore network errors, copy fallback still available */});
   }
 
   const coordText = `${lat}, ${lng}`;
