@@ -359,7 +359,7 @@
           <li>Tempel link tsb di kolom bawah ini, lalu klik "Muat data".</li>
         </ol>
         <span class="field-label">URL Google Sheet</span>
-        <input id="sheetUrl" class="text-input" type="text" placeholder="https://docs.google.com/spreadsheets/d/xxx/edit#gid=xxx">
+        <input id="sheetUrl" class="text-input" type="text" placeholder="https://docs.google.com/spreadsheets/d/xxx/edit#gid=xxx" value="https://docs.google.com/spreadsheets/d/1IZIXeOlPmFD4-Lj_G_kRI5BRsGrCLKEhbso3cnTLBGA/edit?gid=832004100#gid=832004100">
         <button class="btn" id="loadSheetBtn">⟳ Muat data dari Google Sheet</button>
         <button class="btn secondary" id="resetBtn" style="margin-top:8px;">↺ Kembali ke data bawaan</button>
         <div class="sync-status" id="syncStatus"></div>
@@ -411,7 +411,7 @@
         <p>Caranya sama seperti sebelumnya: buka tab sheet yang sesuai (pastikan sudah "Anyone with the link"), salin link dari address bar, tempel di kolom yang sesuai nama petugasnya.</p>
         <div id="petugasUrlFields"></div>
         <span class="field-label">URL sheet "DATA PASIEN HARIAN"</span>
-        <input id="harianUrl" class="text-input" type="text" placeholder="https://docs.google.com/spreadsheets/d/xxx/edit#gid=xxx">
+        <input id="harianUrl" class="text-input" type="text" placeholder="https://docs.google.com/spreadsheets/d/xxx/edit#gid=xxx" value="https://docs.google.com/spreadsheets/d/1IZIXeOlPmFD4-Lj_G_kRI5BRsGrCLKEhbso3cnTLBGA/edit?gid=1691581284#gid=1691581284">
         <button class="btn" id="loadAllStaffBtn">⟳ Muat semua data Petugas & Harian</button>
         <div class="sync-status" id="staffSyncStatus"></div>
       </div>
@@ -1022,11 +1022,17 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 });
 
 /* ================= PETUGAS & HARIAN BULK SYNC ================= */
+const DEFAULT_STAFF_URLS = {
+  SANDI: 'https://docs.google.com/spreadsheets/d/1IZIXeOlPmFD4-Lj_G_kRI5BRsGrCLKEhbso3cnTLBGA/edit?gid=2088354371#gid=2088354371',
+  SUGENG: 'https://docs.google.com/spreadsheets/d/1IZIXeOlPmFD4-Lj_G_kRI5BRsGrCLKEhbso3cnTLBGA/edit?gid=211745044#gid=211745044',
+  VIONA: 'https://docs.google.com/spreadsheets/d/1IZIXeOlPmFD4-Lj_G_kRI5BRsGrCLKEhbso3cnTLBGA/edit?gid=712009501#gid=712009501'
+};
+
 function renderPetugasUrlFields(){
   const wrap = document.getElementById('petugasUrlFields');
   wrap.innerHTML = Object.keys(PETUGAS_DATA).map(name => `
     <span class="staff-field-label">URL sheet "${escapeHtml(name)}"</span>
-    <input class="text-input staff-url-input" data-staff="${escapeHtml(name)}" type="text" placeholder="https://docs.google.com/spreadsheets/d/xxx/edit#gid=xxx">
+    <input class="text-input staff-url-input" data-staff="${escapeHtml(name)}" type="text" placeholder="https://docs.google.com/spreadsheets/d/xxx/edit#gid=xxx" value="${escapeHtml(DEFAULT_STAFF_URLS[name] || '')}">
   `).join('');
 }
 
@@ -1112,6 +1118,13 @@ applyData(EMBEDDED_DATA, 'Data bawaan (file Excel)');
 renderPetugasChips();
 renderPetugasList();
 renderPetugasUrlFields();
+
+// Auto-sync from Google Sheets on load, since default URLs are baked in
+setTimeout(() => {
+  document.getElementById('loadSheetBtn').click();
+  document.getElementById('loadAllStaffBtn').click();
+}, 300);
+
 </script>
 </body>
 </html>
