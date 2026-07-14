@@ -185,7 +185,7 @@
   hr.div{border:none;border-top:1px solid var(--line);margin:16px 0;}
 
   /* ---------- Map ---------- */
-  #map{flex:1;position:relative;}
+  #map{flex:1;position:relative;z-index:1;}
   #map.pinning{cursor:crosshair;}
   .leaflet-popup-content{font-size:12.5px;line-height:1.5;max-width:230px;}
   .popup-name{font-weight:700;color:var(--teal-900);font-size:13.5px;margin-bottom:4px;}
@@ -341,7 +341,7 @@
     <div class="panel" id="panel-petugas">
       <div class="petugas-select-wrap">
         <span class="field-label">Pilih Petugas</span>
-        <div class="petugas-chips" id="petugasChips"></div>
+        <select class="text-input" id="petugasSelect" style="margin-bottom:0;"></select>
         <div class="petugas-summary" id="petugasSummary"></div>
       </div>
       <div class="list-wrap" id="petugasListWrap"></div>
@@ -623,18 +623,16 @@ document.addEventListener('click', (e) => {
 
 /* ================= PETUGAS PANEL ================= */
 function renderPetugasChips(){
-  const wrap = document.getElementById('petugasChips');
-  wrap.innerHTML = Object.keys(PETUGAS_DATA).map(name => {
+  const sel = document.getElementById('petugasSelect');
+  sel.innerHTML = Object.keys(PETUGAS_DATA).map(name => {
     const count = PETUGAS_DATA[name].length;
-    return `<button class="petugas-chip ${name===currentStaff?'active':''}" data-name="${name}">${name} <span style="opacity:.6">(${count})</span></button>`;
+    return `<option value="${escapeHtml(name)}" ${name===currentStaff?'selected':''}>${escapeHtml(name)} (${count} pasien)</option>`;
   }).join('');
-  wrap.querySelectorAll('.petugas-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      currentStaff = chip.getAttribute('data-name');
-      renderPetugasChips();
-      renderPetugasList();
-    });
-  });
+  sel.onchange = () => {
+    currentStaff = sel.value;
+    petugasEditIdx = null;
+    renderPetugasList();
+  };
 }
 
 let petugasEditIdx = null;
