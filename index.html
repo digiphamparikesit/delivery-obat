@@ -210,13 +210,14 @@
     position:absolute;top:14px;left:50%;transform:translateX(-50%);
     background:var(--amber);color:#fff;padding:10px 16px;border-radius:10px;
     font-size:12.5px;font-weight:600;box-shadow:var(--shadow);z-index:1000;
-    display:none;align-items:center;gap:12px;max-width:90%;text-align:center;
+    display:none;align-items:center;gap:8px;max-width:94%;text-align:center;flex-wrap:wrap;justify-content:center;
   }
   .pin-banner.show{display:flex;}
   .pin-banner button{
     background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;
-    border-radius:6px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;
+    border-radius:6px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;
   }
+  #pinGpsBtn{background:rgba(255,255,255,0.9);color:var(--amber) !important;}
 
   .confirm-card{
     position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
@@ -429,6 +430,7 @@
     <div class="map-note">💡 Klik marker untuk detail pasien. Gunakan menu <b>Petugas</b> untuk menandai titik lokasi langsung di peta.</div>
     <div class="pin-banner" id="pinBanner">
       <span id="pinBannerText">Klik di peta untuk menandai lokasi</span>
+      <button id="pinGpsBtn">📍 Pakai Lokasi GPS Saya</button>
       <button id="pinCancelBtn">✖ Batal</button>
     </div>
     <div class="confirm-card" id="confirmCard">
@@ -800,6 +802,34 @@ function cancelPinning(){
 }
 
 document.getElementById('pinCancelBtn').addEventListener('click', cancelPinning);
+
+document.getElementById('pinGpsBtn').addEventListener('click', () => {
+  if(!pinTarget) return;
+  if(!navigator.geolocation){
+    alert('Perangkat/browser ini tidak mendukung GPS. Silakan tandai lokasi dengan tap manual di peta.');
+    return;
+  }
+  const btn = document.getElementById('pinGpsBtn');
+  const originalText = btn.textContent;
+  btn.textContent = '⏳ Mengambil lokasi...';
+  btn.disabled = true;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
+      map.setView(latlng, 17, {animate:true});
+      placeTempMarker(latlng);
+      btn.textContent = originalText;
+      btn.disabled = false;
+    },
+    (err) => {
+      alert('Gagal mengambil lokasi GPS: ' + err.message + '\nPastikan izin lokasi diaktifkan untuk browser ini, atau tandai manual dengan tap di peta.');
+      btn.textContent = originalText;
+      btn.disabled = false;
+    },
+    {enableHighAccuracy:true, timeout:10000, maximumAge:0}
+  );
+});
+
 document.getElementById('ccCancel').addEventListener('click', () => {
   if(tempPinMarker){ map.removeLayer(tempPinMarker); tempPinMarker = null; }
   document.getElementById('confirmCard').classList.remove('show');
