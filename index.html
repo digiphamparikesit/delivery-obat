@@ -87,7 +87,7 @@
   .menu-btn{display:none;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;border-radius:8px;padding:8px 10px;cursor:pointer;align-items:center;gap:6px;font-size:12px;}
 
   /* ---------- Layout ---------- */
-  .app{flex:1;display:flex;min-height:0;position:relative;}
+  .app{flex:1;display:flex;min-height:0;position:relative;z-index:1;}
   aside{
     width:380px;min-width:310px;max-width:430px;
     background:var(--white);
@@ -162,6 +162,7 @@
     font-size:10.5px;overflow-x:auto;line-height:1.5;margin:0 0 12px;
   }
   .field-label{font-size:11.5px;font-weight:700;color:var(--teal-900);margin-bottom:6px;display:block;}
+  .staff-field-label{font-size:11px;font-weight:700;color:var(--teal-700);margin:8px 0 4px;display:block;}
   .text-input{
     width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;
     font-size:12.5px;margin-bottom:10px;outline:none;color:var(--ink);
@@ -378,9 +379,19 @@
   const headers = data[0].map(h => String(h).toUpperCase().trim());
   const regCol = headers.indexOf('NO.REGISTER');
   const mapCol = headers.indexOf('MAP');
+  const addrCol = headers.indexOf('ALAMAT');
+  const phoneCol = headers.indexOf('TELEPON');
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][regCol]) === String(body.noreg)) {
-      sheet.getRange(i + 1, mapCol + 1).setValue(body.lat + ', ' + body.lng);
+      if (body.lat != null && mapCol > -1) {
+        sheet.getRange(i + 1, mapCol + 1).setValue(body.lat + ', ' + body.lng);
+      }
+      if (body.alamat != null && addrCol > -1) {
+        sheet.getRange(i + 1, addrCol + 1).setValue(body.alamat);
+      }
+      if (body.telp != null && phoneCol > -1) {
+        sheet.getRange(i + 1, phoneCol + 1).setValue(body.telp);
+      }
       break;
     }
   }
@@ -392,7 +403,17 @@
         </ol>
         <span class="field-label">URL Apps Script Web App</span>
         <input id="webAppUrl" class="text-input" type="text" placeholder="https://script.google.com/macros/s/.../exec">
-        <p style="color:#9a9584;">Setelah URL ini diisi, tombol "✅ Simpan" pada mode tandai lokasi akan otomatis mengirim titik ke Google Sheet, selain tetap bisa disalin manual.</p>
+        <p style="color:#9a9584;">Setelah URL ini diisi, tombol "✅ Simpan" pada mode tandai lokasi <b>dan</b> tombol "💾 Simpan" pada edit alamat/telepon akan otomatis mengirim perubahan ke Google Sheet, selain tetap bisa disalin manual.</p>
+
+        <hr class="div">
+        <h3>Sinkronkan Data Petugas & Pasien Harian</h3>
+        <p>Sinkron di atas <b>hanya</b> untuk peta utama (sheet "PETA ALAMAT PASIEN"). Data di menu <b>Petugas</b> (SANDI, SUGENG, VIONA, dst) dan <b>Daftar Pasien Harian</b> adalah tab terpisah — masing-masing perlu link sendiri di sini supaya ikut ter-update.</p>
+        <p>Caranya sama seperti sebelumnya: buka tab sheet yang sesuai (pastikan sudah "Anyone with the link"), salin link dari address bar, tempel di kolom yang sesuai nama petugasnya.</p>
+        <div id="petugasUrlFields"></div>
+        <span class="field-label">URL sheet "DATA PASIEN HARIAN"</span>
+        <input id="harianUrl" class="text-input" type="text" placeholder="https://docs.google.com/spreadsheets/d/xxx/edit#gid=xxx">
+        <button class="btn" id="loadAllStaffBtn">⟳ Muat semua data Petugas & Harian</button>
+        <div class="sync-status" id="staffSyncStatus"></div>
       </div>
     </div>
 
@@ -616,6 +637,8 @@ function renderPetugasChips(){
   });
 }
 
+let petugasEditIdx = null;
+
 function renderPetugasList(){
   const wrap = document.getElementById('petugasListWrap');
   const list = PETUGAS_DATA[currentStaff] || [];
@@ -632,6 +655,20 @@ function renderPetugasList(){
 
   wrap.innerHTML = list.map((p, i) => {
     const hasCoord = p.lat != null && p.lng != null;
+    if(petugasEditIdx === i){
+      return `
+        <div class="patient-card" data-idx="${i}">
+          <span class="field-label" style="margin-top:0;">Alamat</span>
+          <textarea class="text-input edit-alamat" rows="3" style="resize:vertical;">${escapeHtml(p.alamat)}</textarea>
+          <span class="field-label">Telepon</span>
+          <input class="text-input edit-telp" type="text" value="${escapeHtml(p.telp)}">
+          <div class="cc-actions" style="display:flex;gap:8px;">
+            <button class="cc-save edit-save-btn" data-idx="${i}" style="flex:1;padding:8px;border-radius:8px;border:none;cursor:pointer;">💾 Simpan</button>
+            <button class="cc-cancel edit-cancel-btn" style="flex:1;padding:8px;border-radius:8px;border:none;cursor:pointer;">Batal</button>
+          </div>
+        </div>
+      `;
+    }
     return `
       <div class="patient-card" data-idx="${i}">
         <div class="pname">
@@ -642,23 +679,64 @@ function renderPetugasList(){
         <div class="pmeta">
           ${p.telp ? '📞 ' + escapeHtml(p.telp) : ''}
         </div>
-        <button class="mark-btn ${hasCoord ? 'secondary' : ''}" data-idx="${i}">
-          ${hasCoord ? '✏️ Ubah titik di peta' : '📍 Tandai lokasi di peta'}
-        </button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="mark-btn ${hasCoord ? 'secondary' : ''}" data-idx="${i}">
+            ${hasCoord ? '✏️ Ubah titik di peta' : '📍 Tandai lokasi di peta'}
+          </button>
+          <button class="mark-btn edit-btn" data-idx="${i}" style="background:#5a5648;">📝 Edit alamat/telp</button>
+        </div>
       </div>
     `;
   }).join('');
 
-  wrap.querySelectorAll('.mark-btn').forEach(btn => {
+  wrap.querySelectorAll('.mark-btn:not(.edit-btn)').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const idx = parseInt(btn.getAttribute('data-idx'));
       startPinning('petugas', currentStaff, idx, PETUGAS_DATA[currentStaff][idx]);
     });
   });
+  wrap.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      petugasEditIdx = parseInt(btn.getAttribute('data-idx'));
+      renderPetugasList();
+    });
+  });
+  wrap.querySelectorAll('.edit-save-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute('data-idx'));
+      const card = btn.closest('.patient-card');
+      const newAlamat = card.querySelector('.edit-alamat').value;
+      const newTelp = card.querySelector('.edit-telp').value;
+      PETUGAS_DATA[currentStaff][idx].alamat = newAlamat;
+      PETUGAS_DATA[currentStaff][idx].telp = newTelp;
+
+      const webAppUrl = document.getElementById('webAppUrl').value.trim();
+      const noreg = PETUGAS_DATA[currentStaff][idx].noreg;
+      if(webAppUrl && noreg){
+        fetch(webAppUrl, {
+          method:'POST',
+          body: JSON.stringify({sheet: currentStaff, noreg, alamat: newAlamat, telp: newTelp})
+        }).catch(() => {});
+      }
+
+      petugasEditIdx = null;
+      renderPetugasList();
+    });
+  });
+  wrap.querySelectorAll('.edit-cancel-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      petugasEditIdx = null;
+      renderPetugasList();
+    });
+  });
   wrap.querySelectorAll('.patient-card').forEach(card => {
     card.addEventListener('click', () => {
       const idx = parseInt(card.getAttribute('data-idx'));
+      if(petugasEditIdx === idx) return;
       const p = PETUGAS_DATA[currentStaff][idx];
       if(p.lat != null){
         map.setView([p.lat, p.lng], 17, {animate:true});
@@ -941,11 +1019,97 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   status.textContent = 'Kembali ke data bawaan.';
 });
 
-/* ================= INIT ================= */
+/* ================= PETUGAS & HARIAN BULK SYNC ================= */
+function renderPetugasUrlFields(){
+  const wrap = document.getElementById('petugasUrlFields');
+  wrap.innerHTML = Object.keys(PETUGAS_DATA).map(name => `
+    <span class="staff-field-label">URL sheet "${escapeHtml(name)}"</span>
+    <input class="text-input staff-url-input" data-staff="${escapeHtml(name)}" type="text" placeholder="https://docs.google.com/spreadsheets/d/xxx/edit#gid=xxx">
+  `).join('');
+}
+
+function parseStaffCsv(url){
+  return new Promise((resolve, reject) => {
+    Papa.parse(normalizeSheetUrl(url), {
+      download:true, header:true, skipEmptyLines:true,
+      complete: (results) => resolve(results),
+      error: (err) => reject(err)
+    });
+  });
+}
+
+document.getElementById('loadAllStaffBtn').addEventListener('click', async () => {
+  const status = document.getElementById('staffSyncStatus');
+  status.className = 'sync-status show loading';
+  status.textContent = 'Memuat data petugas & harian...';
+
+  const jobs = [];
+  document.querySelectorAll('.staff-url-input').forEach(inp => {
+    const url = inp.value.trim();
+    if(url) jobs.push({type:'staff', name: inp.getAttribute('data-staff'), url});
+  });
+  const harianUrl = document.getElementById('harianUrl').value.trim();
+  if(harianUrl) jobs.push({type:'harian', url: harianUrl});
+
+  if(jobs.length === 0){
+    status.className = 'sync-status show err';
+    status.textContent = 'Isi minimal satu URL sheet petugas atau harian dulu.';
+    return;
+  }
+
+  const results = [];
+  for(const job of jobs){
+    try {
+      const res = await parseStaffCsv(job.url);
+      const headers = res.meta.fields || [];
+      const noregKey = findKey(headers, ['no.register','no register','noregister']);
+      const nameKey = findKey(headers, ['nama pasien','nama']);
+      const addrKey = findKey(headers, ['alamat']);
+      const phoneKey = findKey(headers, ['telepon','no hp','telp']);
+      const mapKey = findKey(headers, ['map','koordinat']);
+      const driverKey = findKey(headers, ['driver']);
+      if(!nameKey || !mapKey){
+        results.push(`${job.type === 'staff' ? job.name : 'Pasien Harian'}: kolom NAMA/MAP tidak ditemukan`);
+        continue;
+      }
+      const rows = res.data.filter(r => r[nameKey]).map(r => {
+        const coord = parseCoord(r[mapKey]);
+        return {
+          noreg: noregKey ? (r[noregKey] || '') : '',
+          nama: r[nameKey] || '',
+          alamat: addrKey ? (r[addrKey] || '') : '',
+          telp: phoneKey ? (r[phoneKey] || '') : '',
+          driver: driverKey ? (r[driverKey] || '') : '',
+          lat: coord ? coord.lat : null,
+          lng: coord ? coord.lng : null
+        };
+      });
+      if(job.type === 'staff'){
+        PETUGAS_DATA[job.name] = rows;
+        results.push(`${job.name}: ${rows.length} pasien dimuat`);
+      } else {
+        HARIAN_DATA.length = 0;
+        HARIAN_DATA.push(...rows);
+        results.push(`Pasien Harian: ${rows.length} pasien dimuat`);
+      }
+    } catch(err){
+      results.push(`${job.type === 'staff' ? job.name : 'Pasien Harian'}: gagal memuat`);
+    }
+  }
+
+  renderPetugasChips();
+  renderPetugasList();
+
+  status.className = 'sync-status show ok';
+  status.textContent = results.join(' • ');
+});
+
+
 initMap();
 applyData(EMBEDDED_DATA, 'Data bawaan (file Excel)');
 renderPetugasChips();
 renderPetugasList();
+renderPetugasUrlFields();
 </script>
 </body>
 </html>
