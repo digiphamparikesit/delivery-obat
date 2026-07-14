@@ -674,6 +674,9 @@ function startPinning(kind, staff, idx, patient){
   document.getElementById('pinBannerText').textContent = `📍 Klik di peta untuk menandai lokasi: ${patient.nama}`;
   document.getElementById('pinBanner').classList.add('show');
   document.getElementById('confirmCard').classList.remove('show');
+  // close the sidebar on mobile so the full map is visible/tappable
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('mainNav').classList.remove('mobile-open');
   if(patient.lat != null){
     map.setView([patient.lat, patient.lng], 16);
   }
@@ -717,6 +720,7 @@ document.getElementById('ccSave').addEventListener('click', () => {
   if(!pinTarget || !tempPinMarker) return;
   const latlng = tempPinMarker.getLatLng();
   const lat = +latlng.lat.toFixed(6), lng = +latlng.lng.toFixed(6);
+  const kind = pinTarget.kind;
 
   if(pinTarget.kind === 'petugas'){
     PETUGAS_DATA[pinTarget.staff][pinTarget.idx].lat = lat;
@@ -761,6 +765,12 @@ document.getElementById('ccSave').addEventListener('click', () => {
   document.getElementById('confirmCard').classList.remove('show');
   pinTarget = null;
   tempPinMarker = null;
+
+  if(kind === 'petugas'){
+    setView('petugas');
+  } else if(kind === 'harian'){
+    openHarianModal();
+  }
 
   alert(`Titik lokasi tersimpan: ${coordText}\n(sudah tersalin ke clipboard — tempelkan ke kolom MAP di Google Sheet jika belum tersambung otomatis)`);
 });
