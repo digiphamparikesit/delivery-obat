@@ -191,6 +191,12 @@
   .popup-name{font-weight:700;color:var(--teal-900);font-size:13.5px;margin-bottom:4px;}
   .popup-addr{color:#4a4638;margin-bottom:6px;}
   .popup-phone{color:var(--teal-700);font-size:12px;}
+  .popup-gmaps-btn{
+    display:inline-flex;align-items:center;gap:5px;margin-top:8px;
+    background:var(--teal-700);color:#fff !important;text-decoration:none;
+    font-size:11.5px;font-weight:700;padding:6px 10px;border-radius:8px;
+  }
+  .popup-gmaps-btn:hover{background:var(--teal-500);}
   .popup-tag{display:inline-block;background:var(--amber-100);color:var(--amber);font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;margin-bottom:6px;}
 
   .map-note{
@@ -486,6 +492,10 @@ function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function gmapsDirLink(lat, lng){
+  return `<a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" rel="noopener" class="popup-gmaps-btn">🧭 Rute & jarak (Google Maps)</a>`;
+}
+
 /* ================= MAP ================= */
 function initMap(){
   map = L.map('map', {zoomControl:true}).setView([-0.44, 116.98], 12);
@@ -510,7 +520,8 @@ function buildMarkers(data){
     m.bindPopup(
       `<div class="popup-name">${escapeHtml(p.nama)}</div>` +
       `<div class="popup-addr">${escapeHtml(p.alamat)}</div>` +
-      (p.telp ? `<div class="popup-phone">📞 ${escapeHtml(p.telp)}</div>` : '')
+      (p.telp ? `<div class="popup-phone">📞 ${escapeHtml(p.telp)}</div>` : '') +
+      gmapsDirLink(p.lat, p.lng)
     );
     markerByIndex[i] = m;
     clusterGroup.addLayer(m);
@@ -821,7 +832,8 @@ document.getElementById('ccSave').addEventListener('click', () => {
   perm.bindPopup(
     `<span class="popup-tag">Ditandai manual</span><br>` +
     `<div class="popup-name">${escapeHtml(pinTarget.patient.nama)}</div>` +
-    `<div class="popup-addr">${escapeHtml(pinTarget.patient.alamat)}</div>`
+    `<div class="popup-addr">${escapeHtml(pinTarget.patient.alamat)}</div>` +
+    gmapsDirLink(lat, lng)
   );
   clusterGroup.addLayer(perm);
 
