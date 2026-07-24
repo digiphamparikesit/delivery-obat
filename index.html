@@ -478,6 +478,30 @@
   </div>
 </div>
 
+<!-- MODAL: Detail Pasien (popup saat tap nama) -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-head">
+      <div>
+        <h2 id="detailName">Nama Pasien</h2>
+        <p id="detailStatus">Status titik lokasi</p>
+      </div>
+      <button class="modal-close" id="detailClose">✖ Tutup</button>
+    </div>
+    <div class="modal-body" style="padding:18px 20px;">
+      <span class="field-label">Alamat lengkap</span>
+      <p id="detailAlamat" style="font-size:13px;color:#4a4638;line-height:1.6;margin:0 0 14px;"></p>
+      <div id="detailPhoneWrap" style="margin-bottom:14px;"></div>
+      <div id="detailCoordWrap" style="margin-bottom:16px;font-size:12px;color:#5a5648;"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn" id="detailMarkBtn">📍 Tandai/Ubah Lokasi di Peta</button>
+        <button class="btn secondary" id="detailEditBtn">📝 Edit Alamat / Telepon</button>
+        <a class="btn secondary" id="detailGmapsBtn" href="#" target="_blank" rel="noopener" style="display:none;text-decoration:none;">🧭 Rute & Jarak (Google Maps)</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -683,7 +707,7 @@ function renderPetugasList(){
     return `
       <div class="patient-card" data-idx="${i}">
         <div class="pname">
-          <span>${escapeHtml(p.nama)}</span>
+          <span class="pname-link" data-idx="${i}" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;">${escapeHtml(p.nama)}</span>
           <span class="badge ${hasCoord ? 'ok' : 'warn'}">${hasCoord ? '✅ Ada titik' : '⚠️ Belum ada titik'}</span>
         </div>
         <div class="paddr">${escapeHtml(p.alamat)}</div>
@@ -700,6 +724,13 @@ function renderPetugasList(){
     `;
   }).join('');
 
+  wrap.querySelectorAll('.pname-link').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(el.getAttribute('data-idx'));
+      openPatientDetail('petugas', currentStaff, idx, PETUGAS_DATA[currentStaff][idx]);
+    });
+  });
   wrap.querySelectorAll('.mark-btn:not(.edit-btn)').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -897,6 +928,107 @@ document.getElementById('ccSave').addEventListener('click', () => {
   alert(`Titik lokasi tersimpan: ${coordText}\n(sudah tersalin ke clipboard — tempelkan ke kolom MAP di Google Sheet jika belum tersambung otomatis)`);
 });
 
+/* ================= DETAIL PASIEN (popup saat tap nama) ================= */
+let detailContext = null;
+let detailEditing = false;
+
+function getDetailPatient(){
+  if(!detailContext) return null;
+  if(detailContext.kind === 'petugas') return PETUGAS_DATA[detailContext.staff][detailContext.idx];
+  if(detailContext.kind === 'harian') return HARIAN_DATA[detailContext.idx];
+  return null;
+}
+
+function openPatientDetail(kind, staff, idx, patient){
+  detailContext = {kind, staff, idx};
+  detailEditing = false;
+  document.getElementById('detailModal').classList.add('show');
+  renderDetailModal();
+}
+
+function closeDetailModal(){
+  document.getElementById('detailModal').classList.remove('show');
+  detailContext = null;
+  detailEditing = false;
+}
+
+function renderDetailModal(){
+  const p = getDetailPatient();
+  if(!p) return;
+  const hasCoord = p.lat != null && p.lng != null;
+  document.getElementById('detailName').textContent = p.nama;
+  document.getElementById('detailStatus').textContent = hasCoord ? '✅ Sudah punya titik lokasi' : '⚠️ Belum ada titik lokasi';
+
+  const body = document.querySelector('#detailModal .modal-body');
+
+  if(detailEditing){
+    body.innerHTML = `
+      <span class="field-label">Alamat</span>
+      <textarea class="text-input" id="detailEditAlamat" rows="4" style="resize:vertical;">${escapeHtml(p.alamat)}</textarea>
+      <span class="field-label">Telepon</span>
+      <input class="text-input" id="detailEditTelp" type="text" value="${escapeHtml(p.telp)}">
+      <div style="display:flex;gap:8px;">
+        <button class="btn" id="detailSaveBtn" style="background:var(--green);">💾 Simpan</button>
+        <button class="btn secondary" id="detailCancelEditBtn">Batal</button>
+      </div>
+    `;
+    document.getElementById('detailSaveBtn').addEventListener('click', () => {
+      const newAlamat = document.getElementById('detailEditAlamat').value;
+      const newTelp = document.getElementById('detailEditTelp').value;
+      p.alamat = newAlamat;
+      p.telp = newTelp;
+
+      const webAppUrl = document.getElementById('webAppUrl').value.trim();
+      const sheetName = detailContext.kind === 'petugas' ? detailContext.staff : 'DATA PASIEN HARIAN';
+      if(webAppUrl && p.noreg){
+        fetch(webAppUrl, {
+          method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body: JSON.stringify({sheet: sheetName, noreg: p.noreg, alamat: newAlamat, telp: newTelp})
+        }).catch(() => {});
+      }
+
+      detailEditing = false;
+      renderDetailModal();
+      if(detailContext.kind === 'petugas') renderPetugasList();
+      else renderHarianTable(document.getElementById('harianSearch').value);
+    });
+    document.getElementById('detailCancelEditBtn').addEventListener('click', () => {
+      detailEditing = false;
+      renderDetailModal();
+    });
+    return;
+  }
+
+  body.innerHTML = `
+    <span class="field-label">Alamat lengkap</span>
+    <p style="font-size:13px;color:#4a4638;line-height:1.6;margin:0 0 14px;">${escapeHtml(p.alamat) || '<i style="color:#9a9584;">Alamat belum diisi</i>'}</p>
+    <div style="margin-bottom:14px;">
+      ${p.telp ? `<a href="tel:${escapeHtml(p.telp)}" style="color:var(--teal-700);font-weight:700;text-decoration:none;font-size:13px;">📞 ${escapeHtml(p.telp)} (tap untuk telepon)</a>` : '<span style="color:#9a9584;font-size:12px;">Nomor telepon belum diisi</span>'}
+    </div>
+    <div style="margin-bottom:16px;font-size:12px;color:#5a5648;">
+      ${hasCoord ? `📍 Koordinat: ${p.lat}, ${p.lng}` : 'Belum ada koordinat tersimpan'}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn" id="detailMarkBtn">${hasCoord ? '✏️ Ubah Lokasi di Peta' : '📍 Tandai Lokasi di Peta'}</button>
+      <button class="btn secondary" id="detailEditBtn">📝 Edit Alamat / Telepon</button>
+      ${hasCoord ? `<a class="btn secondary" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" rel="noopener" style="text-decoration:none;">🧭 Rute & Jarak (Google Maps)</a>` : ''}
+    </div>
+  `;
+  document.getElementById('detailMarkBtn').addEventListener('click', () => {
+    closeDetailModal();
+    startPinning(detailContext.kind, detailContext.staff, detailContext.idx, p);
+  });
+  document.getElementById('detailEditBtn').addEventListener('click', () => {
+    detailEditing = true;
+    renderDetailModal();
+  });
+}
+
+document.getElementById('detailClose').addEventListener('click', closeDetailModal);
+document.getElementById('detailModal').addEventListener('click', (e) => {
+  if(e.target.id === 'detailModal') closeDetailModal();
+});
+
 /* ================= DAFTAR PASIEN HARIAN (modal) ================= */
 function openHarianModal(){
   document.getElementById('harianModal').classList.add('show');
@@ -949,17 +1081,8 @@ function renderHarianTable(query){
     tr.addEventListener('click', () => {
       const idx = parseInt(tr.getAttribute('data-idx'));
       const p = HARIAN_DATA[idx];
-      if(p.lat != null){
-        document.getElementById('harianModal').classList.remove('show');
-        setView('list');
-        map.setView([p.lat, p.lng], 17, {animate:true});
-      } else {
-        document.getElementById('harianModal').classList.remove('show');
-        document.querySelectorAll('.panel').forEach(pn => pn.classList.remove('active'));
-        document.getElementById('sidebar').classList.add('open');
-        document.querySelectorAll('#mainNav button').forEach(b => b.classList.remove('active'));
-        startPinning('harian', null, idx, p);
-      }
+      document.getElementById('harianModal').classList.remove('show');
+      openPatientDetail('harian', null, idx, p);
     });
   });
 }
