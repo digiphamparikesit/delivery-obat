@@ -92,9 +92,10 @@
     width:380px;min-width:310px;max-width:430px;
     background:var(--white);
     border-right:1px solid var(--line);
-    display:flex;flex-direction:column;
+    display:none;flex-direction:column;
     z-index:10;
   }
+  aside.open{display:flex;}
 
   .search-wrap{padding:14px 16px 10px;border-bottom:1px solid var(--line);}
   .search-box{
@@ -333,7 +334,7 @@
     </div>
 
     <!-- PANEL: Peta Pasien (list utama) -->
-    <div class="panel active" id="panel-list">
+    <div class="panel" id="panel-list">
       <div class="search-wrap">
         <div class="search-box">
           <span>🔎</span>
@@ -342,16 +343,6 @@
         <div class="search-meta" id="searchMeta"></div>
       </div>
       <div class="list-wrap" id="listWrap"></div>
-    </div>
-
-    <!-- PANEL: Petugas -->
-    <div class="panel" id="panel-petugas">
-      <div class="petugas-select-wrap">
-        <span class="field-label">Pilih Petugas</span>
-        <select class="text-input" id="petugasSelect" style="margin-bottom:0;"></select>
-        <div class="petugas-summary" id="petugasSummary"></div>
-      </div>
-      <div class="list-wrap" id="petugasListWrap"></div>
     </div>
 
     <!-- PANEL: Sync -->
@@ -474,6 +465,27 @@
         </thead>
         <tbody id="harianTbody"></tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Petugas (di tengah layar) -->
+<div class="modal-overlay" id="petugasModal">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-head">
+      <div>
+        <h2>👥 Petugas</h2>
+        <p>Pilih petugas untuk lihat & kelola daftar pasiennya</p>
+      </div>
+      <button class="modal-close" id="petugasClose">✖ Tutup</button>
+    </div>
+    <div class="modal-body">
+      <div class="petugas-select-wrap">
+        <span class="field-label">Pilih Petugas</span>
+        <select class="text-input" id="petugasSelect" style="margin-bottom:0;"></select>
+        <div class="petugas-summary" id="petugasSummary"></div>
+      </div>
+      <div class="list-wrap" id="petugasListWrap"></div>
     </div>
   </div>
 </div>
@@ -623,10 +635,31 @@ function setView(view){
     openHarianModal();
     return;
   }
+  if(view === 'petugas'){
+    openPetugasModal();
+    return;
+  }
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + view).classList.add('active');
   document.getElementById('sidebar').classList.add('open');
 }
+function closeAllOverlays(){
+  document.getElementById('harianModal').classList.remove('show');
+  document.getElementById('petugasModal').classList.remove('show');
+  document.getElementById('detailModal').classList.remove('show');
+  document.getElementById('sidebar').classList.remove('open');
+  document.querySelectorAll('#mainNav button').forEach(b => b.classList.remove('active'));
+}
+function openPetugasModal(){
+  document.getElementById('petugasModal').classList.add('show');
+  renderPetugasChips();
+  renderPetugasList();
+}
+document.getElementById('petugasClose').addEventListener('click', closeAllOverlays);
+document.getElementById('petugasModal').addEventListener('click', (e) => {
+  if(e.target.id === 'petugasModal') closeAllOverlays();
+});
+
 const VIEW_LABELS = {list:'🗺️ Peta Pasien', petugas:'👥 Petugas', harian:'📋 Daftar Pasien Harian', sync:'🔗 Google Sheet'};
 
 document.getElementById('mainNav').addEventListener('click', (e) => {
@@ -647,9 +680,7 @@ document.getElementById('menuBtn').addEventListener('click', () => {
     document.getElementById('mainNav').classList.toggle('mobile-open');
   }
 });
-document.getElementById('asideCloseBtn').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.remove('open');
-});
+document.getElementById('asideCloseBtn').addEventListener('click', closeAllOverlays);
 document.addEventListener('click', (e) => {
   const nav = document.getElementById('mainNav');
   const menuBtn = document.getElementById('menuBtn');
@@ -796,9 +827,8 @@ function startPinning(kind, staff, idx, patient){
   document.getElementById('pinBannerText').textContent = `📍 Klik di peta untuk menandai lokasi: ${patient.nama}`;
   document.getElementById('pinBanner').classList.add('show');
   document.getElementById('confirmCard').classList.remove('show');
-  // close the sidebar on mobile so the full map is visible/tappable
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('mainNav').classList.remove('mobile-open');
+  // close all panels/modals so the full map is visible/tappable
+  closeAllOverlays();
   if(patient.lat != null){
     map.setView([patient.lat, patient.lng], 16);
   }
@@ -1035,15 +1065,9 @@ function openHarianModal(){
   document.getElementById('harianSubtitle').textContent = `${HARIAN_DATA.length} pasien terjadwal hari ini`;
   renderHarianTable('');
 }
-document.getElementById('harianClose').addEventListener('click', () => {
-  document.getElementById('harianModal').classList.remove('show');
-  setView('list');
-});
+document.getElementById('harianClose').addEventListener('click', closeAllOverlays);
 document.getElementById('harianModal').addEventListener('click', (e) => {
-  if(e.target.id === 'harianModal'){
-    document.getElementById('harianModal').classList.remove('show');
-    setView('list');
-  }
+  if(e.target.id === 'harianModal') closeAllOverlays();
 });
 
 function renderHarianTable(query){
