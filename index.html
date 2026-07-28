@@ -120,6 +120,10 @@
   }
   .patient-card:hover{background:var(--mint-100);}
   .patient-card.active{background:#dff0ea;border-left:3px solid var(--teal-500);}
+  .patient-card.cod-flag{background:#fdecea;border-left:3px solid var(--red);}
+  .cod-badge{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;margin-left:6px;white-space:nowrap;}
+  tr.cod-flag{background:#fdecea !important;}
+  tr.cod-flag:hover{background:#fbdcd8 !important;}
   .patient-card .pname{font-size:13.5px;font-weight:700;color:var(--teal-900);margin-bottom:3px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .patient-card .paddr{font-size:12px;color:#5a5648;line-height:1.4;max-height:3.6em;overflow:hidden;}
   .patient-card .pmeta{font-size:11px;color:#9a9584;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
@@ -530,6 +534,11 @@ function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function isCOD(p){
+  const text = `${p.alamat||''} ${p.nama||''}`.toLowerCase();
+  return /\bcod\b/.test(text);
+}
+
 function gmapsDirLink(lat, lng){
   return `<a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" rel="noopener" class="popup-gmaps-btn">🧭 Rute & jarak (Google Maps)</a>`;
 }
@@ -721,9 +730,10 @@ function renderPetugasList(){
 
   wrap.innerHTML = list.map((p, i) => {
     const hasCoord = p.lat != null && p.lng != null;
+    const cod = isCOD(p);
     if(petugasEditIdx === i){
       return `
-        <div class="patient-card" data-idx="${i}">
+        <div class="patient-card ${cod ? 'cod-flag' : ''}" data-idx="${i}">
           <span class="field-label" style="margin-top:0;">Alamat</span>
           <textarea class="text-input edit-alamat" rows="3" style="resize:vertical;">${escapeHtml(p.alamat)}</textarea>
           <span class="field-label">Telepon</span>
@@ -736,10 +746,11 @@ function renderPetugasList(){
       `;
     }
     return `
-      <div class="patient-card" data-idx="${i}">
+      <div class="patient-card ${cod ? 'cod-flag' : ''}" data-idx="${i}">
         <div class="pname">
           <span class="pname-link" data-idx="${i}" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;">${escapeHtml(p.nama)}</span>
           <span class="badge ${hasCoord ? 'ok' : 'warn'}">${hasCoord ? '✅ Ada titik' : '⚠️ Belum ada titik'}</span>
+          ${cod ? '<span class="cod-badge">COD</span>' : ''}
         </div>
         <div class="paddr">${escapeHtml(p.alamat)}</div>
         <div class="pmeta">
@@ -1085,10 +1096,11 @@ function renderHarianTable(query){
   tbody.innerHTML = rows.map((p) => {
     const idx = HARIAN_DATA.indexOf(p);
     const hasCoord = p.lat != null && p.lng != null;
+    const cod = isCOD(p);
     return `
-      <tr data-idx="${idx}">
+      <tr data-idx="${idx}" class="${cod ? 'cod-flag' : ''}">
         <td>${escapeHtml(p.noreg)}</td>
-        <td><b>${escapeHtml(p.nama)}</b></td>
+        <td><b>${escapeHtml(p.nama)}</b>${cod ? ' <span class="cod-badge">COD</span>' : ''}</td>
         <td>${escapeHtml(p.alamat)}</td>
         <td>${escapeHtml(p.telp)}</td>
         <td>${p.driver ? '<span class="driver-tag">' + escapeHtml(p.driver) + '</span>' : ''}</td>
