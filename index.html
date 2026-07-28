@@ -67,10 +67,15 @@
   nav.main-nav button{
     background:none;border:none;color:rgba(255,255,255,0.78);
     padding:8px 13px;border-radius:8px;font-size:12.5px;font-weight:600;
-    cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;
+    cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;
   }
   nav.main-nav button:hover{color:#fff;background:rgba(255,255,255,0.08);}
   nav.main-nav button.active{background:var(--amber);color:#fff;}
+  nav.main-nav .nav-icon{
+    width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+    font-size:12px;flex-shrink:0;
+  }
+  nav.main-nav button.active .nav-icon{background:rgba(255,255,255,0.3) !important;}
 
   .stats{display:flex;gap:8px;flex-wrap:wrap;}
   .stat-pill{
@@ -144,6 +149,20 @@
 
   /* ---------- Petugas panel ---------- */
   .petugas-select-wrap{padding:14px 16px;border-bottom:1px solid var(--line);}
+  .petugas-icon-grid{
+    display:grid;grid-template-columns:repeat(3, 1fr);gap:14px;padding:20px 16px;
+  }
+  .petugas-icon-btn{
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    background:none;border:none;cursor:pointer;padding:8px 4px;border-radius:12px;
+  }
+  .petugas-icon-btn:hover{background:var(--mint-100);}
+  .petugas-icon-avatar{
+    width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:15px;box-shadow:0 3px 8px rgba(0,0,0,0.15);
+  }
+  .petugas-icon-label{font-size:12px;font-weight:700;color:var(--teal-900);text-align:center;}
+  .petugas-icon-count{font-size:10.5px;color:#9a9584;text-align:center;}
   .petugas-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
   .petugas-chip{
     padding:6px 12px;border-radius:999px;border:1px solid var(--line);
@@ -284,16 +303,26 @@
       top:calc(100% + 6px);
       left:14px;
       right:14px;
-      flex-direction:column;
-      background:var(--teal-900);
-      border-radius:12px;
-      padding:8px;
-      gap:2px;
+      grid-template-columns:1fr 1fr;
+      background:#fff;
+      border-radius:16px;
+      padding:16px;
+      gap:12px;
       box-shadow:var(--shadow);
       z-index:40;
     }
-    nav.main-nav.mobile-open{display:flex;}
-    nav.main-nav button{width:100%;justify-content:flex-start;padding:11px 12px;}
+    nav.main-nav.mobile-open{display:grid;}
+    nav.main-nav button{
+      flex-direction:column;justify-content:center;align-items:center;gap:8px;
+      background:var(--mint-100);color:var(--teal-900);
+      padding:16px 8px;border-radius:14px;text-align:center;white-space:normal;
+      font-size:12px;line-height:1.3;
+    }
+    nav.main-nav button.active{background:var(--amber);color:#fff;}
+    nav.main-nav .nav-icon{
+      width:44px;height:44px;border-radius:12px;font-size:22px;
+      box-shadow:0 3px 8px rgba(0,0,0,0.15);
+    }
   }
   @media (max-width:720px){
     aside{position:absolute;left:0;top:0;bottom:0;width:88%;transform:translateX(-100%);transition:transform .2s;box-shadow:var(--shadow);z-index:35;}
@@ -318,10 +347,10 @@
       </div>
     </div>
     <nav class="main-nav" id="mainNav">
-      <button data-view="list" class="active">🗺️ Peta Pasien</button>
-      <button data-view="petugas">👥 Petugas</button>
-      <button data-view="harian">📋 Daftar Pasien Harian</button>
-      <button data-view="sync">🔗 Google Sheet</button>
+      <button data-view="list" class="active"><span class="nav-icon" style="background:#1c8c86;">🗺️</span><span class="nav-label">Peta Pasien</span></button>
+      <button data-view="petugas"><span class="nav-icon" style="background:#e08a2c;">👥</span><span class="nav-label">Petugas</span></button>
+      <button data-view="harian"><span class="nav-icon" style="background:#c94f3d;">📋</span><span class="nav-label">Daftar Pasien Harian</span></button>
+      <button data-view="sync"><span class="nav-icon" style="background:#2f8f5b;">🔗</span><span class="nav-label">Google Sheet</span></button>
     </nav>
     <div class="stats">
       <div class="stat-pill">📍 <b id="statTotal">0</b>&nbsp;terpetakan</div>
@@ -479,17 +508,22 @@
     <div class="modal-head">
       <div>
         <h2>👥 Petugas</h2>
-        <p>Pilih petugas untuk lihat & kelola daftar pasiennya</p>
+        <p id="petugasModalSubtitle">Pilih petugas untuk lihat & kelola daftar pasiennya</p>
       </div>
       <button class="modal-close" id="petugasClose">✖ Tutup</button>
     </div>
     <div class="modal-body">
-      <div class="petugas-select-wrap">
-        <span class="field-label">Pilih Petugas</span>
-        <select class="text-input" id="petugasSelect" style="margin-bottom:0;"></select>
-        <div class="petugas-summary" id="petugasSummary"></div>
+      <div id="petugasIconGrid" class="petugas-icon-grid"></div>
+      <div id="petugasDetailView" style="display:none;">
+        <div style="padding:12px 16px 0;">
+          <button class="btn secondary" id="petugasBackBtn">⬅ Kembali ke daftar petugas</button>
+        </div>
+        <div class="petugas-select-wrap" style="border-bottom:1px solid var(--line);">
+          <span class="field-label">Petugas: <b id="petugasCurrentName" style="color:var(--teal-900);"></b></span>
+          <div class="petugas-summary" id="petugasSummary"></div>
+        </div>
+        <div class="list-wrap" id="petugasListWrap"></div>
       </div>
-      <div class="list-wrap" id="petugasListWrap"></div>
     </div>
   </div>
 </div>
@@ -661,8 +695,11 @@ function closeAllOverlays(){
 }
 function openPetugasModal(){
   document.getElementById('petugasModal').classList.add('show');
-  renderPetugasChips();
-  renderPetugasList();
+  showPetugasGrid();
+}
+function reopenPetugasDetail(){
+  document.getElementById('petugasModal').classList.add('show');
+  showPetugasDetail();
 }
 document.getElementById('petugasClose').addEventListener('click', closeAllOverlays);
 document.getElementById('petugasModal').addEventListener('click', (e) => {
@@ -698,19 +735,48 @@ document.addEventListener('click', (e) => {
   }
 });
 
-/* ================= PETUGAS PANEL ================= */
-function renderPetugasChips(){
-  const sel = document.getElementById('petugasSelect');
-  sel.innerHTML = Object.keys(PETUGAS_DATA).map(name => {
+/* ================= PETUGAS PANEL (grid ikon) ================= */
+const PETUGAS_ICON_COLORS = ['#0f5c5e','#e08a2c','#c94f3d','#2f8f5b','#6f8ac2','#c26f9e','#8a6fc2','#c2a76f','#4a9db8'];
+
+function renderPetugasIconGrid(){
+  const wrap = document.getElementById('petugasIconGrid');
+  wrap.innerHTML = Object.keys(PETUGAS_DATA).map((name, i) => {
     const count = PETUGAS_DATA[name].length;
-    return `<option value="${escapeHtml(name)}" ${name===currentStaff?'selected':''}>${escapeHtml(name)} (${count} pasien)</option>`;
+    const initials = name.slice(0, 2).toUpperCase();
+    const color = PETUGAS_ICON_COLORS[i % PETUGAS_ICON_COLORS.length];
+    return `
+      <button class="petugas-icon-btn" data-name="${escapeHtml(name)}">
+        <span class="petugas-icon-avatar" style="background:${color};">${initials}</span>
+        <span class="petugas-icon-label">${escapeHtml(name)}</span>
+        <span class="petugas-icon-count">${count} pasien</span>
+      </button>
+    `;
   }).join('');
-  sel.onchange = () => {
-    currentStaff = sel.value;
-    petugasEditIdx = null;
-    renderPetugasList();
-  };
+  wrap.querySelectorAll('.petugas-icon-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentStaff = btn.getAttribute('data-name');
+      petugasEditIdx = null;
+      showPetugasDetail();
+    });
+  });
 }
+
+function showPetugasGrid(){
+  document.getElementById('petugasModalSubtitle').textContent = 'Pilih petugas untuk lihat & kelola daftar pasiennya';
+  document.getElementById('petugasIconGrid').style.display = 'grid';
+  document.getElementById('petugasDetailView').style.display = 'none';
+  renderPetugasIconGrid();
+}
+
+function showPetugasDetail(){
+  document.getElementById('petugasModalSubtitle').textContent = `Daftar pasien untuk ${currentStaff}`;
+  document.getElementById('petugasIconGrid').style.display = 'none';
+  document.getElementById('petugasDetailView').style.display = 'block';
+  document.getElementById('petugasCurrentName').textContent = currentStaff;
+  renderPetugasList();
+}
+
+document.getElementById('petugasBackBtn').addEventListener('click', showPetugasGrid);
 
 let petugasEditIdx = null;
 
@@ -961,7 +1027,7 @@ document.getElementById('ccSave').addEventListener('click', () => {
   tempPinMarker = null;
 
   if(kind === 'petugas'){
-    setView('petugas');
+    reopenPetugasDetail();
   } else if(kind === 'harian'){
     openHarianModal();
   }
@@ -1306,7 +1372,7 @@ document.getElementById('loadAllStaffBtn').addEventListener('click', async () =>
     }
   }
 
-  renderPetugasChips();
+  renderPetugasIconGrid();
   renderPetugasList();
 
   status.className = 'sync-status show ok';
@@ -1316,7 +1382,7 @@ document.getElementById('loadAllStaffBtn').addEventListener('click', async () =>
 
 initMap();
 applyData(EMBEDDED_DATA, 'Data bawaan (file Excel)');
-renderPetugasChips();
+renderPetugasIconGrid();
 renderPetugasList();
 renderPetugasUrlFields();
 
