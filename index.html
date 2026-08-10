@@ -210,6 +210,37 @@
 
   /* ---------- Map ---------- */
   #map{flex:1;position:relative;z-index:1;}
+
+  #homeScreen{
+    position:absolute;inset:0;z-index:900;
+    background:linear-gradient(160deg, var(--paper) 0%, var(--mint-100) 100%);
+    display:flex;align-items:center;justify-content:center;padding:24px;
+    overflow-y:auto;
+  }
+  #homeScreen.hidden{display:none;}
+  .home-screen-inner{max-width:520px;width:100%;text-align:center;}
+  .home-screen-title{font-size:20px;font-weight:800;color:var(--teal-900);margin-bottom:6px;}
+  .home-screen-subtitle{font-size:13px;color:#8a8574;margin-bottom:28px;}
+  .home-tiles{display:flex;flex-direction:column;gap:14px;}
+  .home-tile{
+    display:flex;align-items:center;gap:16px;text-align:left;
+    background:var(--white);border:1px solid var(--line);border-radius:16px;
+    padding:18px 20px;cursor:pointer;box-shadow:var(--shadow);
+    transition:transform .12s;
+  }
+  .home-tile:hover{transform:translateY(-2px);}
+  .home-tile-icon{
+    width:56px;height:56px;border-radius:16px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:26px;
+    box-shadow:0 3px 8px rgba(0,0,0,0.15);
+  }
+  .home-tile-label{display:block;font-size:15px;font-weight:800;color:var(--teal-900);}
+  .home-tile-desc{display:block;font-size:12px;color:#8a8574;margin-top:3px;}
+  @media (max-width:480px){
+    .home-screen-title{font-size:17px;}
+    .home-tile{padding:14px 16px;gap:12px;}
+    .home-tile-icon{width:46px;height:46px;font-size:21px;border-radius:13px;}
+  }
   #map.pinning{cursor:crosshair;}
   .leaflet-popup-content{font-size:12.5px;line-height:1.5;max-width:230px;}
   .popup-name{font-weight:700;color:var(--teal-900);font-size:13.5px;margin-bottom:4px;}
@@ -350,7 +381,7 @@
       <button data-view="list" class="active"><span class="nav-icon" style="background:#1c8c86;">🗺️</span><span class="nav-label">Peta Pasien</span></button>
       <button data-view="petugas"><span class="nav-icon" style="background:#e08a2c;">👥</span><span class="nav-label">Petugas</span></button>
       <button data-view="harian"><span class="nav-icon" style="background:#c94f3d;">📋</span><span class="nav-label">Daftar Pasien Harian</span></button>
-      <button data-view="sync"><span class="nav-icon" style="background:#2f8f5b;">🔗</span><span class="nav-label">Google Sheet</span></button>
+      <button data-view="sync" style="display:none;"><span class="nav-icon" style="background:#2f8f5b;">🔗</span><span class="nav-label">Google Sheet</span></button>
     </nav>
     <div class="stats">
       <div class="stat-pill">📍 <b id="statTotal">0</b>&nbsp;terpetakan</div>
@@ -463,6 +494,30 @@
       <div class="cc-actions">
         <button class="cc-save" id="ccSave">✅ Simpan</button>
         <button class="cc-cancel" id="ccCancel">↺ Ulangi klik</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="homeScreen">
+    <div class="home-screen-inner">
+      <div class="home-screen-title">💊 Peta Pengantaran Obat</div>
+      <div class="home-screen-subtitle">Pilih menu untuk mulai</div>
+      <div class="home-tiles">
+        <button class="home-tile" data-view="list">
+          <span class="home-tile-icon" style="background:#1c8c86;">🗺️</span>
+          <span class="home-tile-label">Peta Pasien</span>
+          <span class="home-tile-desc">Lihat & cari lokasi semua pasien</span>
+        </button>
+        <button class="home-tile" data-view="petugas">
+          <span class="home-tile-icon" style="background:#e08a2c;">👥</span>
+          <span class="home-tile-label">Petugas</span>
+          <span class="home-tile-desc">Kelola pasien per petugas & tandai lokasi</span>
+        </button>
+        <button class="home-tile" data-view="harian">
+          <span class="home-tile-icon" style="background:#c94f3d;">📋</span>
+          <span class="home-tile-label">Daftar Pasien Harian</span>
+          <span class="home-tile-desc">Jadwal pengantaran hari ini</span>
+        </button>
       </div>
     </div>
   </div>
@@ -673,6 +728,7 @@ function filterAndRender(query){
 
 /* ================= NAV / VIEW SWITCH ================= */
 function setView(view){
+  document.getElementById('homeScreen').classList.add('hidden');
   document.querySelectorAll('#mainNav button').forEach(b => b.classList.toggle('active', b.getAttribute('data-view') === view));
   if(view === 'harian'){
     openHarianModal();
@@ -686,6 +742,10 @@ function setView(view){
   document.getElementById('panel-' + view).classList.add('active');
   document.getElementById('sidebar').classList.add('open');
 }
+function goHome(){
+  closeAllOverlays();
+  document.getElementById('homeScreen').classList.remove('hidden');
+}
 function closeAllOverlays(){
   document.getElementById('harianModal').classList.remove('show');
   document.getElementById('petugasModal').classList.remove('show');
@@ -693,6 +753,11 @@ function closeAllOverlays(){
   document.getElementById('sidebar').classList.remove('open');
   document.querySelectorAll('#mainNav button').forEach(b => b.classList.remove('active'));
 }
+document.querySelectorAll('.home-tile').forEach(btn => {
+  btn.addEventListener('click', () => setView(btn.getAttribute('data-view')));
+});
+document.querySelector('.brand').style.cursor = 'pointer';
+document.querySelector('.brand').addEventListener('click', goHome);
 function openPetugasModal(){
   document.getElementById('petugasModal').classList.add('show');
   showPetugasGrid();
@@ -701,9 +766,9 @@ function reopenPetugasDetail(){
   document.getElementById('petugasModal').classList.add('show');
   showPetugasDetail();
 }
-document.getElementById('petugasClose').addEventListener('click', closeAllOverlays);
+document.getElementById('petugasClose').addEventListener('click', goHome);
 document.getElementById('petugasModal').addEventListener('click', (e) => {
-  if(e.target.id === 'petugasModal') closeAllOverlays();
+  if(e.target.id === 'petugasModal') goHome();
 });
 
 const VIEW_LABELS = {list:'🗺️ Peta Pasien', petugas:'👥 Petugas', harian:'📋 Daftar Pasien Harian', sync:'🔗 Google Sheet'};
@@ -726,7 +791,7 @@ document.getElementById('menuBtn').addEventListener('click', () => {
     document.getElementById('mainNav').classList.toggle('mobile-open');
   }
 });
-document.getElementById('asideCloseBtn').addEventListener('click', closeAllOverlays);
+document.getElementById('asideCloseBtn').addEventListener('click', goHome);
 document.addEventListener('click', (e) => {
   const nav = document.getElementById('mainNav');
   const menuBtn = document.getElementById('menuBtn');
@@ -1142,9 +1207,9 @@ function openHarianModal(){
   document.getElementById('harianSubtitle').textContent = `${HARIAN_DATA.length} pasien terjadwal hari ini`;
   renderHarianTable('');
 }
-document.getElementById('harianClose').addEventListener('click', closeAllOverlays);
+document.getElementById('harianClose').addEventListener('click', goHome);
 document.getElementById('harianModal').addEventListener('click', (e) => {
-  if(e.target.id === 'harianModal') closeAllOverlays();
+  if(e.target.id === 'harianModal') goHome();
 });
 
 function renderHarianTable(query){
