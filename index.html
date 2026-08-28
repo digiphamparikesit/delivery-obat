@@ -254,6 +254,23 @@
   .popup-gmaps-btn:hover{background:var(--teal-500);}
   .popup-tag{display:inline-block;background:var(--amber-100);color:var(--amber);font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;margin-bottom:6px;}
 
+  .float-search-bar{
+    position:absolute;top:14px;left:50%;transform:translateX(-50%);
+    z-index:900;width:min(92%, 420px);display:none;
+  }
+  .float-search-bar.show{display:block;}
+  .float-search-bar .search-box{
+    background:var(--white);border:1px solid var(--line);border-radius:12px;
+    padding:10px 14px;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;
+  }
+  .float-search-bar input{border:none;background:none;outline:none;flex:1;font-size:13.5px;color:var(--ink);}
+  #floatSearchClose{background:none;border:none;color:#9a9584;font-size:14px;cursor:pointer;padding:2px 4px;}
+  .float-search-meta{
+    text-align:center;margin-top:8px;font-size:11.5px;color:var(--teal-900);font-weight:600;
+    background:rgba(255,255,255,0.9);display:inline-block;padding:4px 12px;border-radius:999px;
+    box-shadow:var(--shadow);left:50%;position:relative;transform:translateX(-50%);
+  }
+
   .map-note{
     position:absolute;bottom:14px;left:14px;z-index:1000;
     background:rgba(255,255,255,0.95);border:1px solid var(--line);
@@ -397,18 +414,6 @@
       <button class="aside-close-btn" id="asideCloseBtn">✖ Tutup</button>
     </div>
 
-    <!-- PANEL: Peta Pasien (list utama) -->
-    <div class="panel" id="panel-list">
-      <div class="search-wrap">
-        <div class="search-box">
-          <span>🔎</span>
-          <input id="searchInput" type="text" placeholder="Cari nama, alamat, atau telepon...">
-        </div>
-        <div class="search-meta" id="searchMeta"></div>
-      </div>
-      <div class="list-wrap" id="listWrap"></div>
-    </div>
-
     <!-- PANEL: Sync -->
     <div class="panel" id="panel-sync">
       <div class="sync-panel">
@@ -483,6 +488,14 @@
 
   <div id="map">
     <div class="map-note">💡 Klik marker untuk detail pasien. Gunakan menu <b>Petugas</b> untuk menandai titik lokasi langsung di peta.</div>
+    <div class="float-search-bar" id="floatSearchBar">
+      <div class="search-box">
+        <span>🔎</span>
+        <input id="mainSearchInput" type="text" placeholder="Cari nama, alamat, atau telepon pasien...">
+        <button id="floatSearchClose" title="Tutup">✖</button>
+      </div>
+      <div class="float-search-meta" id="floatSearchMeta"></div>
+    </div>
     <div class="pin-banner" id="pinBanner">
       <span id="pinBannerText">Klik di peta untuk menandai lokasi</span>
       <button id="pinGpsBtn">📍 Pakai Lokasi GPS Saya</button>
@@ -573,9 +586,15 @@
         <div style="padding:12px 16px 0;">
           <button class="btn secondary" id="petugasBackBtn">⬅ Kembali ke daftar petugas</button>
         </div>
-        <div class="petugas-select-wrap" style="border-bottom:1px solid var(--line);">
+        <div class="petugas-select-wrap" style="border-bottom:none;">
           <span class="field-label">Petugas: <b id="petugasCurrentName" style="color:var(--teal-900);"></b></span>
           <div class="petugas-summary" id="petugasSummary"></div>
+        </div>
+        <div class="search-wrap" style="padding-top:0;">
+          <div class="search-box">
+            <span>🔎</span>
+            <input id="petugasSearchInput" type="text" placeholder="Cari nama, alamat, atau telepon...">
+          </div>
         </div>
         <div class="list-wrap" id="petugasListWrap"></div>
       </div>
@@ -615,7 +634,7 @@ const EMBEDDED_DATA = [{"no": 1.0, "nama": "A MUSNI", "alamat": "KEL,LOA IPUH: J
 const PETUGAS_DATA = {"SANDI": [{"noreg": "0726R01677", "nama": "IROH MASIROH", "alamat": "JL BELIDA (DALAM TERMINAL / BELAKANG LAP FUTSAL R2 )) RT 7 KEL TIMBAU,,,", "telp": "85752171625.0", "lat": null, "lng": null}, {"noreg": "0726R01714", "nama": "MUNTEU", "alamat": "JL BELIDA 1 ,,, BLOK C 1 ,,, RUMAH ULIN PAGAR KUNING NO 11 ,, KEL TIMBAU", "telp": "81279462379.0", "lat": null, "lng": null}, {"noreg": "0726R01665", "nama": "YENNI NOR WAHYUNI", "alamat": "(bayar cod) JLN BELIDA 1 ,,RT 31 SAMPING BLOK F ,RUMAH ULIN 2 PINTU,,KEL TIMBAU", "telp": "82271141382.0", "lat": null, "lng": null}, {"noreg": "0726R01748", "nama": "NGATEMI", "alamat": "jln margatama ,,bukit biru ,,rt 8 .jalan menuju masjid ,,jln durian manok ..rumah beton warna abu2", "telp": "81345516300.0", "lat": null, "lng": null}, {"noreg": "0726R01700", "nama": "SUPARNI", "alamat": "BAYAR COD,,,JL.MARGATAMA ,, RT 13 KEL , BUKIT BIRU ,, RUMAH TEMBOK RUMAH KUNING", "telp": "85175015817.0", "lat": null, "lng": null}, {"noreg": "0726R01634", "nama": "RONI. A", "alamat": "jln swadaya rt 5.melewati bengkel pandawa lurus ,masuk gang sisi kanan jalan sebelum pos ,bukit biru", "telp": "82251829498.0", "lat": null, "lng": null}, {"noreg": "0726R01693", "nama": "SUTIONO", "alamat": "DS BANGUN SARI , RT 8 ,,, ANTAR DI TOKO PAK KARMIN ( ADA DI MAPS )", "telp": "82152061290.0", "lat": null, "lng": null}, {"noreg": "0726R01627", "nama": "EKO ANDRI PRIANTO", "alamat": "KEL . LOA KULU SUMBER SARI : JL NANAS GG PRAWIRA RT. 7 ( RUMAH CAT PUTIH ADA WARUNG WARNA PINK , SISI KANAN JALAN )", "telp": "85250724385.0", "lat": null, "lng": null}, {"noreg": "0726R01751", "nama": "MUSLIMIN", "alamat": "LOA KULU ,,, JL NANAS ],,, BANGUN SARI ,,, SUMBER SARI ,,, RT 7 ,,,, SESUDAH LANGGAR AR RAHMAN", "telp": "81347978497.0", "lat": null, "lng": null}, {"noreg": "0726R01648", "nama": "TURIKAH", "alamat": "loa kulu,desa bangun sari rt 6...gang kedondong ,rumah sisi kanan paling ujung cat coklat beton..", "telp": "81549763615.0", "lat": null, "lng": null}, {"noreg": "0726R01732", "nama": "HESTI ARI NINGSIH", "alamat": "(BAYAR COD) DS . loh sumber : JALAN MULYO PRANOTO rt 5 gg 2 depan langgar ar rahman rumah warna hitam paling ujung .loa kulu", "telp": "82353098448.0", "lat": null, "lng": null}, {"noreg": "0726R01673", "nama": "SRI HARTATI", "alamat": "KEL. LOA KULU DS. LOH SUMBER : JL MULYO PRANOTO RT. 2 GG. NUSA INDAH NO. 36", "telp": "85252420303.0", "lat": null, "lng": null}, {"noreg": "0726R01742", "nama": "DINI NOVIA RAHAYU", "alamat": "(BAYAR COD) LOA KULU KOTA: JLN JENDRAL SUDIRMAN RT 12 GG DJAMHUR RUMAH WARNA UNGU", "telp": "85250942727.0", "lat": null, "lng": null}, {"noreg": "0726R01705", "nama": "DANI YUNI", "alamat": "LOA KULU KOTA ,,,JL JENDRAL SUDIRMAN ,, RT 11 ,,,, RUMAH PINGGIR JALAN POROS ,,, 3 RUMAH SEBELUM JNE AGEN LOA KULU ,, RUMAH KAYU WARNA HIJAU PUTIH ,", "telp": "81348679791.0", "lat": null, "lng": null}, {"noreg": "0726R01670", "nama": "PARIDAH", "alamat": "JL JENDRAL SUDIRMAN ,, RT 10 ,,, DS LOA KULU ,,, DEPAN ATM BNI ,, GANG SEROJA ,,,, RUMAH MASUK GANG PINTU RUMAH WARNA HIJAU SEBELAH KANAN", "telp": "82250984806.0", "lat": null, "lng": null}, {"noreg": "0726R01710", "nama": "RUSDAH", "alamat": "JL . JENDRAL SUDIRMAN RT 10 ,, DEPAN ATM BNI ,, GANG SEROJA ,, SEBELAH SUNGAI ,,, MASUK GANG ADA RUMAH WARNA PINK ,, LOA KULU", "telp": "85389252538.0", "lat": null, "lng": null}, {"noreg": "0726R01769", "nama": "DAFFA IKHSANUL HAKIM", "alamat": "JL JENDRAL SUDIRMAN ,, NO 5 ,, RT 9 ,,, LOA KULU KOTA ,,, RUMAH PINGGIR JALAN ,,, DEKAT LK MART ,,, WARUNG DAENG", "telp": "85173287910.0", "lat": null, "lng": null}, {"noreg": "0726R01741", "nama": "ARFIAN", "alamat": "BAYAR COD ,,KEL LOA KULU ..JLN JENDERAL SUDIRMAN ,,RT 8 ,MELEWATI POLSEK ,,SAMPING TOKO RISA ,,RUMAH KAYU WARNA CREAM ,,", "telp": "81255579055.0", "lat": null, "lng": null}, {"noreg": "0726R01660", "nama": "ANI WAHYUNI", "alamat": "loa kulu KOTA,jln aji masdamsi rt 02 ..pinggir SUNGAI sebelah pangkas rambut ,, ...penjual urung ketupat..", "telp": "85346734969.0", "lat": null, "lng": null}, {"noreg": "0726R01682", "nama": "ANIK WAHYUNI", "alamat": "LOA KULU JL HARJO SUMARTO ,, DS PONORAGAN ,, MASUK JL SALAK ,, RT 1 ,,, NO 40 ,,, RUMAH WARNA PINK", "telp": "82250275980.0", "lat": null, "lng": null}, {"noreg": "0726R01723", "nama": "SRI SUHARTATI", "alamat": "JL HARJO SUMARTO ,, PONORAGAN ,,, LOA KULU ,, RT 1 .. RUMAH PINGGIR JALAN ,, DI DEPAN KUBURAN MUSLIMIN ,,,", "telp": "82352598903.0", "lat": null, "lng": null}, {"noreg": "0726R01629", "nama": "RAYA NOVIRA RAHMAN", "alamat": "kel loa kulu ,,desa sepakat ,jln s farman rt 3 ,,rumah ketua rt ,,samping bengkel las ,,", "telp": "85250410783.0", "lat": null, "lng": null}], "SUGENG": [{"noreg": "0726R01744", "nama": "CHOZINATUL SHOBIKI", "alamat": "JL PESUT ,,  NO 91 ,, KEL TIMBAU ,, ANTAR DI ATA KOMPUTER ,, DEPAN SMA 2", "telp": "85349492025.0", "lat": null, "lng": null}, {"noreg": "0726R01656", "nama": "SALASNAN", "alamat": "JL PESUT ,,, GANG BAKUT SAMPING PUSKESMAS ,, BLOK PEMDA ,,, RT 14 ,, RUMAH WARNA KREM MUDA", "telp": "8125194811.0", "lat": -0.444171, "lng": 116.987818}, {"noreg": "0726R01771", "nama": "SOFIANSYAH", "alamat": "KEL. TIMBAU : JL. PESUT GG. BAKUT RT. 14 NO. 88 A ( RUMAH SISI KIRI DARI MASUK GANG) PAGAR BESI HITAM", "telp": "85247237046.0", "lat": null, "lng": null}, {"noreg": "0726R01685", "nama": "SRI BUSONO SETIAWAN", "alamat": "JL GUNUNG MENYAPA ,,, GANG GUNTUR ,, RT 34 ,,, NO 29 ,, BLOK A ,,, RUMAH ULIN MASUK BLOK A RUMAH PERTAMA SEBELAH KIRI", "telp": "8125823023.0", "lat": -0.438955, "lng": 116.985887}, {"noreg": "0726R01749", "nama": "SEIYAH", "alamat": "KEL TIMBAU,JLN GUNUNG MENYAPA ,,GANG KENOHAN 2 RT 33 ,KONTRAKAN BETON 2 PINTU ,,WARNA ABU2  LES KUNING ,,PINTU PERTAMA ..A/N ROSITAH ,", "telp": "81258094919.0", "lat": -0.440969, "lng": 116.987643}, {"noreg": "0726R01676", "nama": "SAPON", "alamat": "JL PESUT ... GANG KARTANEGARA ,,, RT 20 ,, NO 57 ,, KEL TIMBAU ,,, RUMAH PALING UJUNG SEBELAH KIRI ,, RUMAH WARNA PUTIH", "telp": "85753982859.0", "lat": -0.438165, "lng": 116.983967}, {"noreg": "0726R01739", "nama": "SRI WAHYUNI", "alamat": "JL PESUT GANG PEMENANG RT 20 NO 123 ,, KEL TIMBAU ,,, BANGSALAN BETON 2 PINTU WARNA COKLAT", "telp": "85820602230.0", "lat": -0.432645, "lng": 116.983172}, {"noreg": "0726R01720", "nama": "SITI AISAH", "alamat": "JL GUNUNG PASIR ( GUNUNG SENTUL ) RT  46 ,,, NO 9 ,, KEL MELAYU ,, RUMAH DEPAN SD 017 ,, DI DEPAN RUMAH ADA TRUK", "telp": "89690304268.0", "lat": null, "lng": null}, {"noreg": "0726R01731", "nama": "ERIC JESI MONIZ", "alamat": "jln barong tongkok,,rt 23 sebelum sdn 010 ,,ad pertigaan belok kanan ,,,rumah kayu warna hijau ,,kel maluhu", "telp": "85751875912.0", "lat": null, "lng": null}, {"noreg": "0726R01760", "nama": "KUSRAN", "alamat": "JL LONG APARI ,, RT 15 ,,, KEL MANGKURAWANG ,,,, RUMAH SEBELAH LANGGAR AL MADINAH ,, RUMAH BETON WARNA KREM", "telp": "82251723257.0", "lat": null, "lng": null}], "VIONA": [{"noreg": "0726R01759", "nama": "JUMIATI", "alamat": "KEL MELAYU ,,JLN KARTINI ..GANG KEMBAR ,,RT 18 NO 75 ,,RUMAH KAYU WARNA HIJAU ,,", "telp": "82353403039.0", "lat": null, "lng": null}, {"noreg": "0726R01719", "nama": "FADJRIATUL KAMALIA", "alamat": "KEL LOA IPUH: JLN KARTINI NO 11 RT 30 rumah masuk kedalam RUMAH WARNA HIJAU di samping salon duhita ,,", "telp": "81257807292.0", "lat": null, "lng": null}, {"noreg": "0726R01756", "nama": "IIN SUHADA", "alamat": "JL KARTINI ,, GANG KARYA ,,, NO 33 ,, RT 61 ,, KEL LOA IPUH ,,, RUMAH WARNA BIRU", "telp": "8125363488.0", "lat": null, "lng": null}, {"noreg": "0726R01779", "nama": "MUHAMMAD FERNANDES ANDHIKA SAPUTRA SANOEDDIN", "alamat": "BAYAR COD ,,, KEL. LOA IPUH : JL GUNUNG ULU KEDANG PAHU RT .35 NO. 107 ( RUMAH BANGSALAN ULIN ) RUMAH KE 2 DARI KANAN", "telp": "82210670373.0", "lat": null, "lng": null}, {"noreg": "0726R01666", "nama": "ST. HAWA", "alamat": "KEL.LOA IPUH: JL.GUNUNG PAYANG NO.13 RT.58 RUMAH DI DEPAN JALAN ADA SPANDUK KECIL TULISAN MINIME TGR", "telp": "85339104225.0", "lat": null, "lng": null}, {"noreg": "0726R01772", "nama": "ARNADI", "alamat": "JL MANGKURAJA ,, GANG BENTIAN ,,, RT 68 ,, NO 62 ,, KEL LOA IPUH RUMAH WARNA COKLAT", "telp": "85349078527.0", "lat": null, "lng": null}, {"noreg": "0726R01709", "nama": "HARI SETYAWAN", "alamat": "JL MANGKURAJA ,, RUMAH DIDEPAN MANGKURAJA 6 ,,, RUMAH DIBELAKANG TOKO KADUNG TRESNO,,KEL LOA IPUH", "telp": "82213134958.0", "lat": null, "lng": null}, {"noreg": "0726R01707", "nama": "BAHRUDIN", "alamat": "JL MANGKURAJA ,, GANG CITRA BARU ,,, KEL LOA IPUH ,, RUMAH KE 3 DARI PINGGIR SUNGAI ,, RUMAH SEBELAH KIRI DARI MASUK GANG", "telp": "81346725323.0", "lat": null, "lng": null}, {"noreg": "0726R01688", "nama": "HANAFIAH", "alamat": "JL MELAK 1 ,, MORODADI 4 ,,, NO A 2 ,, KEL LOA IPUH", "telp": "8125507148.0", "lat": null, "lng": null}, {"noreg": "0726R01630", "nama": "SYUKUR PRASETYO LESTARI WIDODO", "alamat": "JLN BONTANG ,,RT 4 ,,NO 05 ,,KEL MALUHU", "telp": "82255184380.0", "lat": null, "lng": null}, {"noreg": "0726R01639", "nama": "SUSANA ALEN", "alamat": "(BAYAR COD) 2 PASIEN + IIN SUBAHATIN ) KEL. LOA IPUH : JALAN LOA IPUH (PERUM LOA IPUH PERMAI) NO.53A RT.15", "telp": "85754513304.0", "lat": null, "lng": null}, {"noreg": "0726R01734", "nama": "SUSANTI", "alamat": "(BAYAR COD) jln loa ipuh..gang nusa indah dalam ,,rt 48 no 88 ...", "telp": "82358280186.0", "lat": null, "lng": null}, {"noreg": "0726R01718", "nama": "DEVI PERMATA SARI", "alamat": "(BAYAR COD) JL LOA IPUH ,,, JL GUNUNG SEDAYU ,,, SAMPING PUSKES LOA IPUH ,, NAIK GUNUNG SIMPANG 3 BELOK KIRI TURUN GUNUNG DEPAN PURE ,, SEBELAH KANAN RUMAH PERTAMA ,,, RT 50", "telp": "81375206840.0", "lat": null, "lng": null}, {"noreg": "0726R01643", "nama": "JALIPAH", "alamat": "BAYAR COD ,,, KEL. LOA IPUH : JL. LOA IPUH, GG. RAWA INDAH 2, RT. 17, NO. 23. RUMAH WARNA BIRU PUTIH, ADA SALONNYA, RUMAH SEBELAH KIRI, RUMAH KE 2 SETELAH MASUK GANG.", "telp": "81350020441.0", "lat": null, "lng": null}, {"noreg": "0726R01695", "nama": "JAHRAH", "alamat": "JL MANGKURAJA 1 ,,, BLOK E ,,, RUMAH SEWAAN 4 PINTU WARNA BIRU,, KEL LOA IPUH", "telp": "85821049598.0", "lat": null, "lng": null}, {"noreg": "0726R01683", "nama": "SIKKI", "alamat": "JL LOA IPUH ,, GANG DEWI SRI ,,, RT 67 ,,, NO 41 ,, KE LOA IPUH ,,,, RUMAH KAYU PALING UJUNG GANG", "telp": "81352067822.0", "lat": null, "lng": null}], "DIAN": [], "KITY": [{"noreg": "1024R14472", "nama": "JOHAN HARYANTA ONG", "alamat": "KEL. MELAYU : JL. MUSO BIN SALIM (ANTAR KE APOTEK SWAN2)***", "telp": "08195015410 / 087810575354", "lat": null, "lng": null}, {"noreg": "1024R14635", "nama": "ERNI", "alamat": "KEL. MELAYU : JL. IMAM BONJOL RT. 2 GG. 2 NO 62 (RUMAH DI BELAKANG RUMAH NO.63/ DEPAN KUBURAN)", "telp": "81347888312.0", "lat": null, "lng": null}, {"noreg": "1024R15059", "nama": "SARIYEM", "alamat": "(BAYAR COD) jln kartini ,gang sartika rt 31 no 42,,samping lpk madya,,kel loa ipuh", "telp": "85351886658.0", "lat": null, "lng": null}, {"noreg": "1024R14575", "nama": "SUMINAH", "alamat": "jln danau aji ,,gang wakaf 2,masuk gang lamongan 4 ,,DEPAN RUMAH ADA TANDON WARNA ORANGE,,( RUMAH PALING UJUNG SEBELAH KIRI GANG ) KEL MELAYU", "telp": "081347557317 / 085387759277", "lat": null, "lng": null}, {"noreg": "1024R15465", "nama": "RANDY MOCHAMMAD AVIF", "alamat": "JL . AM ALIMUDIN ,,, NO 76 ,, RUMAH DINAS PENGADILAN .. SEBELAH PRIMAGASS .. KEL MELAYU", "telp": "82332874882.0", "lat": null, "lng": null}, {"noreg": "1024R15220", "nama": "RUMIATIN", "alamat": "JL . AHMAD MUKSIN ,, GANG KUBUR ,, RT 3 ,, NO 7 .. KEL MELAYU ,,,, RUMAH WARNA OREN ,,, BERHADAN DENGAN AIR ISI ULANG FAJAR ,", "telp": "08125058494 / 081228538075", "lat": null, "lng": null}, {"noreg": "1024R14626", "nama": "MUHAMMAD IRAWAN", "alamat": "loa ipuh: jln kartini gg firdaus rt 25 no 55 rumah warna kuning depan langgar al iman", "telp": "81347317112.0", "lat": null, "lng": null}], "RAHMA": [], "MAYANG": [], "ARJUDIN": [], "YUDIS": []};
 const HARIAN_DATA = [{"noreg": "0726R01632", "nama": "NIANSYAH", "alamat": "JL AHMAD DAHLAN ,, GANG MANGGA 1 ,,, NO 18 ,, RT 12 ,,, KEL BARU ,,, RUMAH BETON WARNA PUTIH PAGAR BESI", "telp": "85245563085.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01675", "nama": "MUNAWWAR ZAIN", "alamat": "JL AJI IMBUT ,,, NO 50 ,,, RT 2 ,, KEL BARU ,,, RUMAH PINGGIR JALAN ,,, SEBELAH KANAN ,, ADA BENNER RUMAH BELAJAR INDAH A/N RAHMA", "telp": "82154908894.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01711", "nama": "MUKSANI", "alamat": "KEL. SUKARAME : JL. AWANG LONG SENOPATI GG. 4 RT. 3 NO. 83 ( MASUK GANG LURUS, ADA SIMPANG 4 LURUS AJA, RUMAH SISI KIRI BETON CAT PUTIH PAS DI TANJAKAN) (UDAH EDIT (+))", "telp": "85656904755.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01712", "nama": "RADIANA", "alamat": "DO+ SABRAN ,,, JLN MANGKURAWANG ,,RT 5 GANG 10 NO 57 (RUMAH TINGKAT 2 RUMAH BETON CAT PINK, KIRI JALAN)", "telp": "82358462656.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01728", "nama": "JURIANSYAH", "alamat": "JL MANGKURAWANG ,, TANAH HABANG ,, GANG 17 ,, RT 19 ,, NO 31 ,,,, KEL MANGKURAWANG ,,,, RUMAH WARNA PUTIH PALING UJUNG SEBELAH KIRI ADA PAGAR HITAM", "telp": "81254914092.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01768", "nama": "BAHRIAH", "alamat": "MANGKURAWANG ,, JL KRAMAJAYA ,,, GANG 2 ,,, RT 12 ,, NO 15 ,,, A/N HELMI", "telp": "81344764443.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01642", "nama": "MARTINI", "alamat": "JL AM SANGAJI ,, RT 8 ,, NO 71 ,, KEL BARU ,,, PINGGIR SUNGAI ,,, SEBELAH PENJAHIT TANJUNG", "telp": "85705009608.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01698", "nama": "RUSNIAH. S", "alamat": "KEL MANGKURAWANG: PERUMAHAN RANGGA YUDA RT 12 BLOK C DEPAN ASRAMA PUTRI PONDOK PENSATREN AL HURO RUMAH WARNA HIJAU ,, ( RUMAH PAK ARIF )", "telp": "81346312143.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01702", "nama": "MISRAN", "alamat": "jln mangkurawang ..no 20 rt 1 ,,samping gang 2 ,,rumah kayu rolindor biru ,,", "telp": "8125855122.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01706", "nama": "IDRUS", "alamat": "JL . AM SANGAJI ,, KAMPUNG BARU ,, ,, RT 5,, NO 12 ,,, CONTER FAEZA CELL PINGGIR SUNGAI ,,", "telp": "85246676711.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01754", "nama": "IWAN WAHYUDI", "alamat": "KEL. MANGKURAWANG : JL. MANGKURAWANG RT. 3 NO. 32 (RUMAH DI BELAKANG MIE AYAM BAKSO , SEBELUM GG 8)***)", "telp": "85551162621.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01755", "nama": "FAUZIAH", "alamat": "DO+ ALPIAN ,,, JL AM SANGAJI ,, GANG SAMPING ARJUNA PRITING ,,, NO 112 ,, RT 01 ... KEL BARU .. BELAKANG RUMAH BETON WARNA BIRU", "telp": "85246796944.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01774", "nama": "HAFIZA KHAIRA LUTHFIA", "alamat": "JL KEJAWI PERMAI KAMPUNG BARU RT 8 ,,, RUMAH ULIN PAGAR BESI BETON WARNA ABUABU LES KUNING", "telp": "85246220874.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01778", "nama": "ANDI RIZKY RAHMADHANI", "alamat": "(BAYAR COD)   JL MANGKURAWANG ,, GANG 9A ,, SAMPING BANK BRI ,, RUMAH HIJAU SEBELAH KIRI ,, NO 120 \\,, KEL MANGKURAWANG", "telp": "82189111106.0", "driver": "DIAN ADRIAN", "lat": null, "lng": null}, {"noreg": "0726R01680", "nama": "SURIANSYAH", "alamat": "jongkang ,,, jl suaka ap mangkunegara ,,, rt 1 ,, setelah jembatan sebelah kanan ,, rumah ulin halaman luas", "telp": "85860794213.0", "driver": "MAYANG AZHARI", "lat": null, "lng": null}, {"noreg": "0726R01737", "nama": "KASMI NINGSIH", "alamat": "DS LOA RAYA ,RT 2 ,, NO 14 ,,, GANG PAS DEPAN PENCUCIAN OZI", "telp": "82354949879.0", "driver": "MAYANG AZHARI", "lat": null, "lng": null}, {"noreg": "0726R01636", "nama": "MITHA ANTUBILLAH", "alamat": "DESA LOA LEPU,,JLN AM IDRIS,,RT 6 MASUK KE JALAN AM IDRIS,,LURUS AJA,,ADA SIMPANG 3 ,LURUS AJA ,RUMAH SEBELAH KANAN ,RUMAH BETON WARNA KUNING ,DEPAN RUMAH ADA KELAPA KUNING ,,,,", "telp": "81350480403.0", "driver": "MAYANG AZHARI", "lat": null, "lng": null}, {"noreg": "0726R01651", "nama": "RUSDI HERYADI", "alamat": "DESA PERJIWA ,,JLN MANGKURAJA RT 5 ,NO 33..RUMAH PINGGIR JALAN SISI KANAN,,SESUDAH PUSBAN ,,DEPAN RUMAH JUALAN BAJU ..RUMAH KAYU WARNA UNGU,.,", "telp": "85249307638.0", "driver": "MAYANG AZHARI", "lat": null, "lng": null}, {"noreg": "0726R01713", "nama": "IDRUS", "alamat": "BAYAR COD) DESA PERJIWA,,JLN PELITA ,,RT 2 NO 40 ,,RUMAH BETON WARNA PINK ,,HADAPAN RUMAH DA TANDON3 .. BELAKANG LAPANGAN BOLA FUTSAL", "telp": "82260208350.0", "driver": "MAYANG AZHARI", "lat": null, "lng": null}, {"noreg": "0726R01716", "nama": "ESHA DINNAR PRATIWI", "alamat": "JL AM IDRIS ,, RT 5 DS LOA LEPU ,,,, POLINDES LOA LEPU BAWAH", "telp": "85246780054.0", "driver": "MAYANG AZHARI", "lat": null, "lng": null}, {"noreg": "0726R01765", "nama": "JAYA KUSUMA ATMAJA", "alamat": "DS. TELUK DALAM : JALAN TELUK DALAM GANG KELUARGA 3 RT. 01 NO. 45 RUMAH SISI KIRI DARI MASUK GANG, RUMAH KE 2", "telp": "081350822550 / 081348866870", "driver": "MAYANG AZHARI", "lat": null, "lng": null}, {"noreg": "0726R01775", "nama": "AMINAH KEWA", "alamat": "DS.TELUK DALAM. JALUR 2 PERUM HANDAYANI (TITIP DI POS JAGA SECURITY)", "telp": "81253712629.0", "driver": "MAYANG AZHARI", "lat": null, "lng": null}, {"noreg": "0726R01784", "nama": "AILSA RAFIFAH MITSALINA", "alamat": "A/N DENI ,, JL DANAU LIPAN ,, GANG 2 ,,, RT 30 ,, NO 32 ,, KEL MELAYU ,,, RUMAH WARNA KUNING", "telp": "81256178467.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01667", "nama": "SLAMET PUJIATI", "alamat": "JL DANAU LIPAN ,, GANG 6 ,, NO 107 ,,, A/N MEMET ,,, RT 30 .. KEL MELAYU ,,,, SEBELAH WARUNG SEMBAKO", "telp": "82271045758.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01690", "nama": "SITTI ROSNENI", "alamat": "jln kh ahmad muksin,,gang 3 ,,no 42 rt 1 ,,kel timbau", "telp": "82150401881.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01699", "nama": "MUHAMMAD FATHURRACHMAN", "alamat": "JL AHMAD MUKSIN ,, RT 1 ,,, NO 44 ,,, KEL MELAYU ( MASUK GANG KUBUR , MASUK GANG CAPUNG ,,, RUMAH KAYU ADA TIANG NYA WARNA UNGU RUMAH WARNA PUTIH )", "telp": "85250436460.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01725", "nama": "A. SYAIFUL BACHRI", "alamat": "KEL.TIMBAU : JLN PUYU NO 22 RT 14 ( penyewaan tenda sebelah kanan )", "telp": "85233161954.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01746", "nama": "DEVI ZULFIA", "alamat": "JL ARWANA ,, BLOK E NO 26 ,,, RT 22 ,, KEL TIMBAU", "telp": "81351999661.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01757", "nama": "BERNIWATI", "alamat": "JL NAGA ,,, MASUK JL GUNUNG ILAS ,,, RT 36 ,, NO 39 ,,, KEL TIMBAU ,, RUMAH PANGGUNG KAYU", "telp": "81350449629.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01770", "nama": "AGUS ALFIANSYAH", "alamat": "KEL TIMBAU ,,JLN RUWAN ,,RT 3 NO 20 ,,RUMAH SISI KIRI ,,RUMAH KAYU WARNA KUNING ,,DEPAN RUMAH AD KOLAM IKAN /AD TIANG LISTRIK DEPANNYA .,", "telp": "82299770337.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01773", "nama": "ALMIRA RAMADHANI", "alamat": "JL DANAU AJI ,,, GANG WAKAF 2 ,, RT 32 ,, MASUK GANG LAMONGAN 3 ,,, DEPAN RUMAH KOLAM PAGAR ULIN ,,, RUMAH WARNA KUNING", "telp": "81347159888.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01776", "nama": "HILMAN", "alamat": "BAYAR COD ,,,, ,Kel. Melayu : Jl. Muso bin salim, gang 2, depan kantor pertanahan, Rt. 5, No. 25, rumah warna hijau***", "telp": "85248000151.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01644", "nama": "MAHDIYAH LUTHFI SIREGAR", "alamat": "(BAYAR COD) .DO+ ADAWIYAH CAHYA R,,, MELAYU : JALAN MADUNIGRAT RT. 16 NO. 68 GANG SADAR (DEPAN GEREJA SAMPING PANGKAS RAMBUT RAHMAN) RUMAH WARNA BIRU .", "telp": "85346902047.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01653", "nama": "ERWANSYAH", "alamat": "Kel. Melayu : Jl. Danau Melintang, Samping Salon Nuel, gang alqalam,, Rt. 24,NO 36 B,, Rumah bangsalan, pintu ke 2", "telp": "82157390399.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01686", "nama": "RATIH ULAN SARI", "alamat": "MELAYU: JLN DANAU LIPAN RT 31 NO 06 RUMAH ADA DEPO AIR MINUM YULI ADA JUAL PAKAN AYAM", "telp": "82254902051.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01692", "nama": "NUR AHSAN", "alamat": "(BAYAR COD) DO+ISTICKOMAH ,,KEL. MELAYU : JALAN DANAU AJI (MASUK SAMPING BRI ADA JUAL BUAH)", "telp": "85393966221.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01722", "nama": "MUHAMMAD FAUZI", "alamat": "2 PASIEN + SRINGAH (BAYAR COD) ,,,KEL. MELAYU JALAN GUNUNG JATI GG HIDAYAH RT. 41 NO. 42 RUMAH WARNA PUTIH", "telp": "85345874711.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01730", "nama": "MARYATI", "alamat": "KEL. MELAYU : JALAN KH AHMAD MUKSIN RT.3 GANG. FATMA (BELAKANG HOTEL FATMA) NO. 35", "telp": "85250035252.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01745", "nama": "NURHIDAYAH", "alamat": "JL RUWAN ,, NO 106 ,, RT 027 ,, KEL TIMBAU ,,,, RUMAH WARNA OREN DI ATAS PONPES ALHIDAYAH", "telp": "81226267231.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01750", "nama": "MAHRUM", "alamat": "(DO NURI ) KEL. MELAYU: JL MADUNIGRAT GG. 6 RT. 20 NO, 65 (DEPAN HOTEL KARYA TAPIN)", "telp": "085250001212 / 081334067667", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01761", "nama": "SHAFA REZIE RAMADANI", "alamat": "JL AHMAD MUKSIN ,, GANG LANGGAR ,,, NO 15 ,,, RT 1 ,,, KEL TIMBAU \\,,,, RUMAH WARNA COKLAT ULIN", "telp": "81350994320.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01764", "nama": "RISNA", "alamat": "DO+ RAYA ,,, KEL. TIMBAU : JL AHMAD MUKSIN RT6 NO. 44 (RUMAH SAMPING KANAN OPLET SUSU SETIA TIMBAU) RUMAH BETON", "telp": "82155401591.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01780", "nama": "EDY MOHAMMAD YUSUF ARIADI", "alamat": "BAYAR COD ,,, JLN NAGA,,GANG NAGA INDAH ,,NO 5A RT 36 ,,KEL TIM,BAU", "telp": "81399193123.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01783", "nama": "YANTO", "alamat": "BAYAR COD ,, TIMBAU: JLN JELAWAT GG JELAWAT BATU 3 BLOK B RT 21 NO 63 RUMAH WARNA BIRU MUDA", "telp": "82353444068.0", "driver": "RAHMAWATI, A.Md.Far", "lat": null, "lng": null}, {"noreg": "0726R01656", "nama": "SALASNAN", "alamat": "JL PESUT ,,, GANG BAKUT SAMPING PUSKESMAS ,, BLOK PEMDA ,,, RT 14 ,, RUMAH WARNA KREM MUDA", "telp": "8125194811.0", "driver": "SUGENG SIROJUDDIN", "lat": null, "lng": null}, {"noreg": "0726R01676", "nama": "SAPON", "alamat": "JL PESUT ... GANG KARTANEGARA ,,, RT 20 ,, NO 57 ,, KEL TIMBAU ,,, RUMAH PALING UJUNG SEBELAH KIRI ,, RUMAH WARNA PUTIH", "telp": "85753982859.0", "driver": "SUGENG SIROJUDDIN", "lat": null, "lng": null}, {"noreg": "0726R01685", "nama": "SRI BUSONO SETIAWAN", "alamat": "JL GUNUNG MENYAPA ,,, GANG GUNTUR ,, RT 34 ,,, NO 29 ,, BLOK A ,,, RUMAH ULIN MASUK BLOK A RUMAH PERTAMA SEBELAH KIRI", "telp": "8125823023.0", "driver": "SUGENG SIROJUDDIN", "lat": null, "lng": null}, {"noreg": "0726R01720", "nama": "SITI AISAH", "alamat": "JL GUNUNG PASIR ( GUNUNG SENTUL ) RT  46 ,,, NO 9 ,, KEL MELAYU ,, RUMAH DEPAN SD 017 ,, DI DEPAN RUMAH ADA TRUK", "telp": "89690304268.0", "driver": "SUGENG SIROJUDDIN", "lat": null, "lng": null}, {"noreg": "0726R01731", "nama": "ERIC JESI MONIZ", "alamat": "jln barong tongkok,,rt 23 sebelum sdn 010 ,,ad pertigaan belok kanan ,,,rumah kayu warna hijau ,,kel maluhu", "telp": "85751875912.0", "driver": "SUGENG SIROJUDDIN", "lat": null, "lng": null}, {"noreg": "0726R01739", "nama": "SRI WAHYUNI", "alamat": "JL PESUT GANG PEMENANG RT 20 NO 123 ,, KEL TIMBAU ,,, BANGSALAN BETON 2 PINTU WARNA COKLAT", "telp": "85820602230.0", "driver": "SUGENG SIROJUDDIN", "lat": null, "lng": null}, {"noreg": "0726R01744", "nama": "CHOZINATUL SHOBIKI", "alamat": "JL PESUT ,,  NO 91 ,, KEL TIMBAU ,, ANTAR DI ATA KOMPUTER ,, DEPAN SMA 2", "telp": "85349492025.0", "driver": "SUGENG SIROJUDDIN", "lat": null, "lng": null}, {"noreg": "0726R01749", "nama": "SEIYAH", "alamat": "KEL TIMBAU,JLN GUNUNG MENYAPA ,,GANG KENOHAN 2 RT 33 ,KONTRAKAN BETON 2 PINTU ,,WARNA ABU2  LES KUNING ,,PINTU PERTAMA ..A/N ROSITAH ,", "telp": "081258094919 / 081325204563", "driver": "SUGENG SIROJUDDIN", "lat": null, "lng": null}, {"noreg": "0726R01771", "nama": "SOFIANSYAH", "alamat": "KEL. TIMBAU : JL. PESUT GG. BAKUT RT. 14 NO. 88 A ( RUMAH SISI KIRI DARI MASUK GANG) PAGAR BESI HITAM", "telp": "85247237046.0", "driver": "SUGENG SIROJUDDIN", "lat": null, "lng": null}, {"noreg": "0726R01627", "nama": "EKO ANDRI PRIANTO", "alamat": "KEL . LOA KULU SUMBER SARI  :  JL NANAS GG PRAWIRA RT. 7  ( RUMAH CAT PUTIH ADA WARUNG WARNA PINK , SISI KANAN JALAN )", "telp": "85250724385.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01673", "nama": "SRI HARTATI", "alamat": "KEL. LOA KULU DS. LOH SUMBER : JL MULYO PRANOTO RT. 2 GG. NUSA INDAH NO. 36", "telp": "85252420303.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01682", "nama": "ANIK WAHYUNI", "alamat": "LOA KULU JL HARJO SUMARTO ,, DS PONORAGAN ,, MASUK JL SALAK ,, RT 1 ,,, NO 40 ,,, RUMAH WARNA PINK", "telp": "82250275980.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01705", "nama": "DANI YUNI", "alamat": "LOA KULU KOTA ,,,JL JENDRAL SUDIRMAN ,, RT 11 ,,,, RUMAH PINGGIR JALAN POROS ,,, 3 RUMAH SEBELUM JNE AGEN LOA KULU ,, RUMAH KAYU WARNA HIJAU PUTIH ,", "telp": "81348679791.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01714", "nama": "MUNTEU", "alamat": "JL BELIDA 1 ,,, BLOK C 1 ,,, RUMAH ULIN PAGAR KUNING NO 11 ,, KEL TIMBAU", "telp": "81279462379.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01723", "nama": "SRI SUHARTATI", "alamat": "JL HARJO SUMARTO ,, PONORAGAN ,,, LOA KULU ,, RT 1 .. RUMAH PINGGIR JALAN ,, DI DEPAN KUBURAN MUSLIMIN ,,,", "telp": "82352598903.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01732", "nama": "HESTI ARI NINGSIH", "alamat": "(BAYAR COD) DS . loh sumber : JALAN MULYO PRANOTO rt 5 gg 2 depan langgar ar rahman rumah warna hitam paling ujung .loa kulu", "telp": "82353098448.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01751", "nama": "MUSLIMIN", "alamat": "LOA KULU ,,, JL NANAS ],,, BANGUN SARI ,,, SUMBER SARI ,,, RT 7 ,,,, SESUDAH LANGGAR AR RAHMAN", "telp": "81347978497.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01629", "nama": "RAYA NOVIRA RAHMAN", "alamat": "kel loa kulu ,,desa sepakat ,jln s farman rt 3 ,,rumah ketua rt ,,samping bengkel las ,,", "telp": "85250410783.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01634", "nama": "RONI. A", "alamat": "jln swadaya rt 5.melewati bengkel pandawa lurus ,masuk gang sisi kanan jalan sebelum pos ,bukit biru", "telp": "82251829498.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01648", "nama": "TURIKAH", "alamat": "loa kulu,desa bangun sari rt 6...gang kedondong ,rumah sisi kanan paling ujung cat coklat beton..", "telp": "81549763615.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01660", "nama": "ANI WAHYUNI", "alamat": "loa kulu KOTA,jln aji masdamsi rt 02 ..pinggir SUNGAI sebelah pangkas rambut ,, ...penjual urung ketupat..", "telp": "85346734969.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01665", "nama": "YENNI NOR WAHYUNI", "alamat": "(bayar cod) JLN BELIDA 1 ,,RT 31 SAMPING BLOK F ,RUMAH ULIN 2 PINTU,,KEL TIMBAU", "telp": "82271141382.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01670", "nama": "PARIDAH", "alamat": "JL JENDRAL SUDIRMAN ,, RT 10 ,,, DS LOA KULU ,,, DEPAN ATM BNI ,, GANG SEROJA ,,,, RUMAH MASUK GANG PINTU RUMAH WARNA HIJAU SEBELAH KANAN", "telp": "82250984806.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01677", "nama": "IROH MASIROH", "alamat": "JL BELIDA (DALAM TERMINAL / BELAKANG LAP FUTSAL R2 )) RT 7 KEL TIMBAU,,,", "telp": "85752171625.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01693", "nama": "SUTIONO", "alamat": "DS BANGUN SARI , RT 8 ,,, ANTAR DI TOKO PAK KARMIN ( ADA DI MAPS )", "telp": "82152061290.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01700", "nama": "SUPARNI", "alamat": "BAYAR COD,,,JL.MARGATAMA ,, RT 13 KEL , BUKIT BIRU ,, RUMAH TEMBOK RUMAH KUNING", "telp": "85175015817.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01710", "nama": "RUSDAH", "alamat": "JL . JENDRAL SUDIRMAN RT 10 ,, DEPAN ATM BNI ,, GANG SEROJA ,, SEBELAH SUNGAI ,,, MASUK GANG ADA RUMAH WARNA PINK ,, LOA KULU", "telp": "85389252538.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01741", "nama": "ARFIAN", "alamat": "BAYAR COD ,,KEL LOA KULU ..JLN JENDERAL SUDIRMAN ,,RT 8 ,MELEWATI POLSEK ,,SAMPING TOKO RISA ,,RUMAH KAYU WARNA CREAM ,,", "telp": "81255579055.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01742", "nama": "DINI NOVIA RAHAYU", "alamat": "(BAYAR COD) LOA KULU KOTA: JLN JENDRAL SUDIRMAN RT 12 GG DJAMHUR RUMAH WARNA UNGU", "telp": "85250942727.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01748", "nama": "NGATEMI", "alamat": "jln margatama ,,bukit biru ,,rt 8 .jalan menuju masjid ,,jln durian manok ..rumah beton warna abu2", "telp": "81345516300.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01769", "nama": "DAFFA IKHSANUL HAKIM", "alamat": "JL JENDRAL SUDIRMAN ,, NO 5 ,, RT 9 ,,, LOA KULU KOTA ,,, RUMAH PINGGIR JALAN ,,, DEKAT LK MART ,,, WARUNG DAENG", "telp": "85173287910.0", "driver": "TAPRIZI NUR", "lat": null, "lng": null}, {"noreg": "0726R01779", "nama": "MUHAMMAD FERNANDES ANDHIKA SAPUTRA SANOEDDIN", "alamat": "BAYAR COD ,,, KEL. LOA IPUH : JL GUNUNG ULU KEDANG PAHU RT .35 NO. 107 ( RUMAH BANGSALAN ULIN ) RUMAH KE 2 DARI KANAN", "telp": "82210670373.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01666", "nama": "ST. HAWA", "alamat": "KEL.LOA IPUH: JL.GUNUNG PAYANG NO.13 RT.58 RUMAH DI DEPAN JALAN ADA SPANDUK KECIL TULISAN MINIME TGR", "telp": "85339104225.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01695", "nama": "JAHRAH", "alamat": "JL MANGKURAJA 1 ,,, BLOK E ,,, RUMAH SEWAAN 4 PINTU WARNA BIRU,, KEL LOA IPUH", "telp": "85821049598.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01707", "nama": "BAHRUDIN", "alamat": "JL MANGKURAJA ,, GANG CITRA BARU ,,, KEL LOA IPUH ,, RUMAH KE 3 DARI PINGGIR SUNGAI ,, RUMAH SEBELAH KIRI DARI MASUK GANG", "telp": "81346725323.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01734", "nama": "SUSANTI", "alamat": "(BAYAR COD) jln loa ipuh..gang nusa indah dalam ,,rt 48 no 88 ...", "telp": "82358280186.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01756", "nama": "IIN SUHADA", "alamat": "JL KARTINI ,, GANG KARYA ,,, NO 33 ,, RT 61 ,, KEL LOA IPUH ,,, RUMAH WARNA BIRU", "telp": "8125363488.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01772", "nama": "ARNADI", "alamat": "JL MANGKURAJA ,, GANG BENTIAN ,,, RT 68 ,, NO 62 ,, KEL LOA IPUH RUMAH WARNA COKLAT", "telp": "85349078527.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01630", "nama": "SYUKUR PRASETYO LESTARI WIDODO", "alamat": "JLN BONTANG ,,RT 4 ,,NO 05 ,,KEL MALUHU", "telp": "82255184380.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01639", "nama": "SUSANA ALEN", "alamat": "(BAYAR COD) 2 PASIEN + IIN SUBAHATIN ) KEL. LOA IPUH : JALAN LOA IPUH (PERUM LOA IPUH PERMAI) NO.53A RT.15", "telp": "85754513304.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01643", "nama": "JALIPAH", "alamat": "BAYAR COD ,,, KEL. LOA IPUH : JL. LOA IPUH, GG. RAWA INDAH 2, RT. 17, NO. 23. RUMAH WARNA BIRU PUTIH, ADA SALONNYA, RUMAH SEBELAH KIRI, RUMAH KE 2 SETELAH MASUK GANG.", "telp": "81350020441.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01683", "nama": "SIKKI", "alamat": "JL LOA IPUH ,, GANG DEWI SRI ,,, RT 67 ,,, NO 41 ,, KE LOA IPUH ,,,, RUMAH KAYU PALING UJUNG GANG", "telp": "81352067822.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01688", "nama": "HANAFIAH", "alamat": "JL MELAK 1 ,, MORODADI 4 ,,, NO A 2 ,, KEL LOA IPUH", "telp": "8125507148.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01709", "nama": "HARI SETYAWAN", "alamat": "JL MANGKURAJA ,, RUMAH DIDEPAN MANGKURAJA 6 ,,, RUMAH DIBELAKANG TOKO KADUNG TRESNO,,KEL LOA IPUH", "telp": "82213134958.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01718", "nama": "DEVI PERMATA SARI", "alamat": "(BAYAR COD)   JL LOA IPUH ,,, JL GUNUNG SEDAYU ,,, SAMPING PUSKES LOA IPUH ,, NAIK GUNUNG SIMPANG 3 BELOK KIRI TURUN GUNUNG DEPAN PURE ,, SEBELAH KANAN RUMAH PERTAMA ,,, RT 50", "telp": "81375206840.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01719", "nama": "FADJRIATUL KAMALIA", "alamat": "KEL LOA IPUH: JLN KARTINI NO 11 RT 30 rumah masuk kedalam RUMAH WARNA HIJAU di samping salon duhita ,,", "telp": "81257807292.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01759", "nama": "JUMIATI", "alamat": "KEL MELAYU ,,JLN KARTINI ..GANG KEMBAR ,,RT 18 NO 75 ,,RUMAH KAYU WARNA HIJAU ,,", "telp": "82353403039.0", "driver": "VIONA RISKA DWI LESTARI", "lat": null, "lng": null}, {"noreg": "0726R01763", "nama": "NOVA KHAIRUNNISA", "alamat": ",,,Kel. Panji : Jl. KH. Dewantara, Rt. 3, No. 7, Sebelah indomaret, Rumah warna putih, Pagar hitam", "telp": "81346282919.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01753", "nama": "MUHAMMAD SAMSIR EFENDI", "alamat": "(BAYAR COD),,,,JL KH DEWANTARA ,, RT 3 NO 5 ... RUMAH PINGGIR JALAN ,,, DI DEPAN AYAM SETIA ,, ADA SPANDUK HAMSTER / PET SHOP SAMSIR  ,, KEL PANJI", "telp": "82152140709.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01785", "nama": "FATIMAH", "alamat": "(BAYAR COD) KEL. LOA IPUH : JALAN MAYJEND PANJAITAN GG. 4 NO. 6 RT. 3 (RUMAH SISI KANAN, RUMAH CAT ORANGE RUMAH BETON)", "telp": "85250525427.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01715", "nama": "ENDANG SUPANDI", "alamat": "( BAYAR COD) , KEL. LOA IPUH : JALAN MAYJEND PANJAITAN GANG IKHLAS RT. 9 NO.38 (GAK JAUH DARI MASJID) RUMAH SISI KANAN JALAN (RUMAH ULIN LES PUTIH ADA JUALAN SEMBAKO)", "telp": "81347773467.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01669", "nama": "HARDADY", "alamat": "jln tenis lapangan,,gang 2,,masuk ke gang brama ,,no 43A rt 13 ( RUMAH AGAK MASUK KEDALAM SEBELAH KANAN GANG )..kel panji", "telp": "8125567341.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01640", "nama": "MULYATI", "alamat": "JL RONDONG DEMANG ,,, GANG. 3 RT 10 ,, NO 43 ,, KEL PANJI ,,, GANG PAS DEPAN KOLAM RENANG ,,, RUMAH RT 10", "telp": "82157455526.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01736", "nama": "MUHAMMAD RASYHA AQILA PRATAMA", "alamat": "KEL. PANJI : JL. SELIMPAT NO.18 RT.17 RUMAH ULIN PAGAR HITAM SAMPING GG KELUARGA", "telp": "81347353790.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01703", "nama": "ENDANG SULISTYOWATI", "alamat": "KEL. PANJI : JL. BOGENVILE RT. 9 NO. 17 (RUMAH SISI KIRI JALAN, SAMPING WARUNG YANG ADA POM MINI / DEPAN TOKO SENAPAN)", "telp": "81258718242.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01697", "nama": "MOHD. JEBBAR BATHOHIR", "alamat": "jln bougenvile,,no.1/19 ,,rt 7 ,,samping putsal ,,depan rumah ada gajebo,, ( RUMAH SEBELAH JALAN SERINDIT ) kel sukarame", "telp": "81254810449.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01782", "nama": "MUHAMMAD ALWI AL FAQIH", "alamat": "(BAYAR COD)  ,,, JL. BOUGENVILL, NO. 5, RT. 9, RUMAH PAS DIDEPAN GEDUNG FUTSAL, ADA ROMBONG BENSIN WARNA PINK", "telp": "82157604417.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01696", "nama": "MUKRI", "alamat": "(BAYAR COD) JLN BOUGENVILE ,,GANG 9 ,,RT 8 ,,RUMAH BETON WARNA PUTIH HIJAU ,,AD PLANG DEPAN RUMAH TUKANG URUT,,KEL SUKARAME", "telp": "8125396095.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01733", "nama": "RISKA AMELIA", "alamat": "JL BOGENVILE ,, GANG 7 ,,, NO 12 D .. RT 8 KEL SUKARAME ,,, DEKAT DEPOT AINI ,,", "telp": "82291964367.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01735", "nama": "SITI MUNAJAROH", "alamat": "JL ANGGANA ,, GANG TULIP ,, KEL SUKARAME ,,,, RT 08 ,,, NO 159 ,,, RUMAH PALING UJUNG WARNA HIJAU", "telp": "82159716680.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01777", "nama": "S. FATIMAH L", "alamat": "BAYAR COD ,,, JLN TAMBAK REL NO 4 DEPAN FUTSAL RT 14 KEL BARU", "telp": "89516235035.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01766", "nama": "NASYWA THALITA AQILAH", "alamat": "JL H JAFAR SEMAN RT 15 NO 17 SAMPING SALAD SABI KEL BARU", "telp": "81225821936.0", "driver": "YUDISTIRA ANG JAYA", "lat": null, "lng": null}, {"noreg": "0726R01760", "nama": "KUSRAN", "alamat": "JL LONG APARI ,, RT 15 ,,, KEL MANGKURAWANG ,,,, RUMAH SEBELAH LANGGAR AL MADINAH ,, RUMAH BETON WARNA KREM", "telp": "82251723257.0", "driver": "SUGENG SIROJUDDIN", "lat": null, "lng": null}];
 
-let map, clusterGroup, allData = [], filteredData = [], markerByIndex = {};
+let map, clusterGroup, pinnedLayer, petugasSearchLayer, allData = [], filteredData = [], markerByIndex = {};
 let tempPinMarker = null, pinTarget = null; // {kind:'petugas'|'harian', staff, idx}
 let currentStaff = Object.keys(PETUGAS_DATA)[0];
 
@@ -641,6 +660,8 @@ function initMap(){
   }).addTo(map);
   clusterGroup = L.markerClusterGroup({maxClusterRadius:50});
   map.addLayer(clusterGroup);
+  pinnedLayer = L.layerGroup().addTo(map);
+  petugasSearchLayer = L.layerGroup().addTo(map);
 
   map.on('click', (e) => {
     if(!pinTarget) return;
@@ -649,7 +670,6 @@ function initMap(){
 }
 
 function buildMarkers(data){
-  clusterGroup.clearLayers();
   markerByIndex = {};
   data.forEach((p, i) => {
     const m = L.marker([p.lat, p.lng]);
@@ -660,36 +680,7 @@ function buildMarkers(data){
       gmapsDirLink(p.lat, p.lng)
     );
     markerByIndex[i] = m;
-    clusterGroup.addLayer(m);
-  });
-}
-
-function renderList(data){
-  const wrap = document.getElementById('listWrap');
-  if(data.length === 0){
-    wrap.innerHTML = '<div class="empty-state">Tidak ada pasien yang cocok dengan pencarian.</div>';
-    return;
-  }
-  const capped = data.slice(0, 300);
-  wrap.innerHTML = capped.map((p) => `
-    <div class="patient-card" data-idx="${p.__idx}">
-      <div class="pname">${escapeHtml(p.nama)}</div>
-      <div class="paddr">${escapeHtml(p.alamat)}</div>
-      <div class="pmeta">${p.telp ? '📞 ' + escapeHtml(p.telp) : ''}</div>
-    </div>
-  `).join('');
-  if(data.length > 300){
-    wrap.innerHTML += `<div class="empty-state">Menampilkan 300 dari ${data.length} hasil. Persempit pencarian untuk melihat lainnya.</div>`;
-  }
-  wrap.querySelectorAll('.patient-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const idx = card.getAttribute('data-idx');
-      const p = allData[idx];
-      if(!p) return;
-      flyAndOpen(p, idx);
-      wrap.querySelectorAll('.patient-card').forEach(c=>c.classList.remove('active'));
-      card.classList.add('active');
-    });
+    // not added to the map yet — only shown once matched by search
   });
 }
 
@@ -704,31 +695,53 @@ function flyAndOpen(p, idx){
 function applyData(data, sourceLabel){
   allData = data.map((p, i) => ({...p, __idx: i}));
   buildMarkers(allData);
+  clusterGroup.clearLayers();
   filterAndRender('');
   document.getElementById('statTotal').textContent = allData.length.toLocaleString('id-ID');
-  if(allData.length){
-    const bounds = L.latLngBounds(allData.map(p => [p.lat, p.lng]));
-    map.fitBounds(bounds, {padding:[30,30]});
-  }
 }
 
 function filterAndRender(query){
   const q = query.trim().toLowerCase();
-  filteredData = !q ? allData : allData.filter(p =>
+  clusterGroup.clearLayers();
+  const metaEl = document.getElementById('floatSearchMeta');
+
+  if(!q){
+    filteredData = [];
+    document.getElementById('statShown').textContent = '0';
+    metaEl.textContent = `${allData.length.toLocaleString('id-ID')} total pasien — ketik untuk mencari`;
+    return;
+  }
+
+  filteredData = allData.filter(p =>
     (p.nama||'').toLowerCase().includes(q) ||
     (p.alamat||'').toLowerCase().includes(q) ||
     (p.telp||'').toLowerCase().includes(q)
   );
-  renderList(filteredData);
   document.getElementById('statShown').textContent = filteredData.length.toLocaleString('id-ID');
-  document.getElementById('searchMeta').textContent = q
-    ? `${filteredData.length} hasil untuk "${query}"`
-    : `${allData.length} total pasien`;
+  metaEl.textContent = filteredData.length === 0
+    ? `Tidak ada hasil untuk "${query}"`
+    : `📍 ${filteredData.length} titik ditemukan — tap marker untuk detail`;
+
+  filteredData.forEach(p => {
+    const marker = markerByIndex[p.__idx];
+    if(marker) clusterGroup.addLayer(marker);
+  });
+  if(filteredData.length === 1){
+    map.setView([filteredData[0].lat, filteredData[0].lng], 17, {animate:true});
+  } else if(filteredData.length > 1){
+    const bounds = L.latLngBounds(filteredData.map(p => [p.lat, p.lng]));
+    map.fitBounds(bounds, {padding:[40,40], maxZoom:16});
+  }
 }
 
 /* ================= NAV / VIEW SWITCH ================= */
 function setView(view){
   document.getElementById('homeScreen').classList.add('hidden');
+  document.getElementById('harianModal').classList.remove('show');
+  document.getElementById('petugasModal').classList.remove('show');
+  document.getElementById('detailModal').classList.remove('show');
+  document.getElementById('sidebar').classList.remove('open');
+  if(view !== 'list') document.getElementById('floatSearchBar').classList.remove('show');
   document.querySelectorAll('#mainNav button').forEach(b => b.classList.toggle('active', b.getAttribute('data-view') === view));
   if(view === 'harian'){
     openHarianModal();
@@ -738,12 +751,22 @@ function setView(view){
     openPetugasModal();
     return;
   }
+  if(view === 'list'){
+    document.getElementById('floatSearchBar').classList.add('show');
+    const input = document.getElementById('mainSearchInput');
+    input.value = '';
+    filterAndRender('');
+    setTimeout(() => input.focus(), 50);
+    return;
+  }
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + view).classList.add('active');
   document.getElementById('sidebar').classList.add('open');
 }
 function goHome(){
   closeAllOverlays();
+  document.getElementById('floatSearchBar').classList.remove('show');
+  clusterGroup.clearLayers();
   document.getElementById('homeScreen').classList.remove('hidden');
 }
 function closeAllOverlays(){
@@ -751,6 +774,7 @@ function closeAllOverlays(){
   document.getElementById('petugasModal').classList.remove('show');
   document.getElementById('detailModal').classList.remove('show');
   document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('floatSearchBar').classList.remove('show');
   document.querySelectorAll('#mainNav button').forEach(b => b.classList.remove('active'));
 }
 document.querySelectorAll('.home-tile').forEach(btn => {
@@ -830,6 +854,7 @@ function showPetugasGrid(){
   document.getElementById('petugasModalSubtitle').textContent = 'Pilih petugas untuk lihat & kelola daftar pasiennya';
   document.getElementById('petugasIconGrid').style.display = 'grid';
   document.getElementById('petugasDetailView').style.display = 'none';
+  petugasSearchLayer.clearLayers();
   renderPetugasIconGrid();
 }
 
@@ -838,14 +863,19 @@ function showPetugasDetail(){
   document.getElementById('petugasIconGrid').style.display = 'none';
   document.getElementById('petugasDetailView').style.display = 'block';
   document.getElementById('petugasCurrentName').textContent = currentStaff;
-  renderPetugasList();
+  const searchInput = document.getElementById('petugasSearchInput');
+  searchInput.value = '';
+  renderPetugasList('');
+  searchInput.focus();
 }
 
 document.getElementById('petugasBackBtn').addEventListener('click', showPetugasGrid);
+document.getElementById('petugasSearchInput').addEventListener('input', (e) => renderPetugasList(e.target.value));
 
 let petugasEditIdx = null;
 
-function renderPetugasList(){
+function renderPetugasList(query){
+  if(query === undefined) query = document.getElementById('petugasSearchInput').value;
   const wrap = document.getElementById('petugasListWrap');
   const list = PETUGAS_DATA[currentStaff] || [];
   const withCoord = list.filter(p => p.lat != null).length;
@@ -856,10 +886,32 @@ function renderPetugasList(){
 
   if(list.length === 0){
     wrap.innerHTML = '<div class="empty-state">Belum ada pasien yang ditugaskan ke petugas ini di file sumber.</div>';
+    petugasSearchLayer.clearLayers();
     return;
   }
 
-  wrap.innerHTML = list.map((p, i) => {
+  const q = (query||'').trim().toLowerCase();
+  petugasSearchLayer.clearLayers();
+
+  if(!q && petugasEditIdx === null){
+    wrap.innerHTML = '<div class="empty-state">🔎 Ketik nama, alamat, atau nomor telepon untuk menampilkan pasien & titik lokasinya di peta.</div>';
+    return;
+  }
+
+  const entries = list
+    .map((p, i) => ({p, i}))
+    .filter(({p, i}) => petugasEditIdx === i || !q ||
+      (p.nama||'').toLowerCase().includes(q) ||
+      (p.alamat||'').toLowerCase().includes(q) ||
+      (p.telp||'').toLowerCase().includes(q)
+    );
+
+  if(entries.length === 0){
+    wrap.innerHTML = '<div class="empty-state">Tidak ada pasien yang cocok dengan pencarian.</div>';
+    return;
+  }
+
+  wrap.innerHTML = entries.map(({p, i}) => {
     const hasCoord = p.lat != null && p.lng != null;
     const cod = isCOD(p);
     if(petugasEditIdx === i){
@@ -896,6 +948,33 @@ function renderPetugasList(){
       </div>
     `;
   }).join('');
+
+  // show matched patients with coordinates as markers on the map
+  if(q){
+    const withPos = entries.filter(({p}) => p.lat != null && p.lng != null);
+    withPos.forEach(({p}) => {
+      const m = L.marker([p.lat, p.lng], {
+        icon: L.divIcon({
+          className:'',
+          html:'<div style="width:18px;height:18px;border-radius:50%;background:#e08a2c;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>',
+          iconSize:[18,18], iconAnchor:[9,9]
+        })
+      });
+      m.bindPopup(
+        `<div class="popup-name">${escapeHtml(p.nama)}</div>` +
+        `<div class="popup-addr">${escapeHtml(p.alamat)}</div>` +
+        (p.telp ? `<div class="popup-phone">📞 ${escapeHtml(p.telp)}</div>` : '') +
+        gmapsDirLink(p.lat, p.lng)
+      );
+      petugasSearchLayer.addLayer(m);
+    });
+    if(withPos.length === 1){
+      map.setView([withPos[0].p.lat, withPos[0].p.lng], 17, {animate:true});
+    } else if(withPos.length > 1){
+      const bounds = L.latLngBounds(withPos.map(({p}) => [p.lat, p.lng]));
+      map.fitBounds(bounds, {padding:[40,40], maxZoom:16});
+    }
+  }
 
   wrap.querySelectorAll('.pname-link').forEach(el => {
     el.addEventListener('click', (e) => {
@@ -1068,7 +1147,7 @@ document.getElementById('ccSave').addEventListener('click', () => {
     `<div class="popup-addr">${escapeHtml(pinTarget.patient.alamat)}</div>` +
     gmapsDirLink(lat, lng)
   );
-  clusterGroup.addLayer(perm);
+  pinnedLayer.addLayer(perm);
 
   // try auto-save to Apps Script if configured
   const webAppUrl = document.getElementById('webAppUrl').value.trim();
@@ -1256,7 +1335,8 @@ function renderHarianTable(query){
 document.getElementById('harianSearch').addEventListener('input', (e) => renderHarianTable(e.target.value));
 
 /* ================= SEARCH (peta pasien) ================= */
-document.getElementById('searchInput').addEventListener('input', e => filterAndRender(e.target.value));
+document.getElementById('mainSearchInput').addEventListener('input', e => filterAndRender(e.target.value));
+document.getElementById('floatSearchClose').addEventListener('click', goHome);
 
 /* ================= GOOGLE SHEET SYNC ================= */
 function parseCoord(str){
